@@ -168,36 +168,75 @@ else:
       with col_b:
         st.markdown(f"{badge}{reason_text}")
 
-      bars_html = """
-            <div style="display: flex; gap: 4px; align-items: flex-end; height: 35px; margin-bottom: 8px; background: rgba(0,0,0,0.03); padding: 2px 4px; border-radius: 4px;">
+      # Two separate horizontal visual rows for Rain/Showers vs Thunderstorms, with military time labels and doubled arrow size
+      html_output = """
+            <div style="display: flex; flex-direction: column; gap: 6px; margin-bottom: 8px; background: rgba(0,0,0,0.03); padding: 4px; border-radius: 4px;">
+              <!-- Wind Arrows Row -->
+              <div style="display: flex; gap: 4px; align-items: center;">
             """
       for start_time, period in window_periods:
-        t_label = start_time.strftime("%I%p").lstrip("0")
         wind_dir = period.get("windDirection", "N")
         arrow = get_wind_arrow(wind_dir)
-
+        html_output += f"""
+                <div style="flex: 1; display: flex; justify-content: center; align-items: center; font-size: 18px; line-height: 1;">
+                  {arrow}
+                </div>
+                """
+      html_output += """
+              </div>
+              
+              <!-- Rain Bar Graph Row -->
+              <div style="display: flex; gap: 4px; align-items: flex-end; height: 25px;">
+            """
+      for start_time, period in window_periods:
         pop = period.get("probabilityOfPrecipitation", {}).get("value") or 0
         short_fc = period["shortForecast"].lower()
         if pop == 0 and any(
-            w in short_fc for w in ["rain", "shower", "storm", "drizzle"]
+            w in short_fc for w in ["rain", "shower", "drizzle"]
         ):
           pop = 40
-
         height_pct = max(pop, 5)
-        bar_color = (
-            "#ff4b4b"
-            if "thunder" in short_fc or "storm" in short_fc
-            else "#21c354"
-        )
-
-        bars_html += f"""
-                <div style="flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: flex-end; height: 100%;">
-                  <div title="{t_label}: {pop}% precip, Wind {wind_dir}" style="width: 100%; background-color: {bar_color}; height: {height_pct}%; border-radius: 2px;"></div>
-                  <span style="font-size: 9px; line-height: 1; color: #555; margin-top: 1px;">{arrow}</span>
+        html_output += f"""
+                <div style="flex: 1; display: flex; flex-direction: column; justify-content: flex-end; height: 100%;">
+                  <div title="Rain: {pop}%" style="width: 100%; background-color: #21c354; height: {height_pct}%; border-radius: 2px;"></div>
                 </div>
                 """
-      bars_html += "</div>"
+      html_output += """
+              </div>
 
-      st.html(bars_html)
+              <!-- Thunder Bar Graph Row -->
+              <div style="display: flex; gap: 4px; align-items: flex-end; height: 25px;">
+            """
+      for start_time, period in window_periods:
+        short_fc = period["shortForecast"].lower()
+        detailed_fc = period["detailedForecast"].lower()
+        has_thunder = "thunder" in short_fc or "thunder" in detailed_fc or "storm" in short_fc
+        thunder_pct = 100 if has_thunder and "slight chance" not in short_fc else (40 if has_thunder else 0)
+        height_pct = max(thunder_pct, 5) if thunder_pct > 0 else 0
+        bg_col = "#ff4b4b" if thunder_pct > 0 else "transparent"
+        html_output += f"""
+                <div style="flex: 1; display: flex; flex-direction: column; justify-content: flex-end; height: 100%;">
+                  <div title="Thunder Risk" style="width: 100%; background-color: {bg_col}; height: {height_pct}%; border-radius: 2px;"></div>
+                </div>
+                """
+      html_output += """
+              </div>
+
+              <!-- Military Time Labels Row -->
+              <div style="display: flex; gap: 4px; border-top: 1px solid rgba(0,0,0,0.1); padding-top: 2px;">
+            """
+      for start_time, period in window_periods:
+        mil_hour = start_time.strftime("%H")
+        html_output += f"""
+                <div style="flex: 1; text-align: center; font-size: 9px; color: #555;">
+                  {mil_hour}
+                </div>
+                """
+      html_output += """
+              </div>
+            </div>
+            """
+
+      st.html(html_output)
 
     st.divider()
