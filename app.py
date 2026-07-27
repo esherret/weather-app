@@ -257,7 +257,7 @@ else:
       grid_html += '</div>'
       st.html(grid_html)
 
-      # Construct SVG smooth wave curve with dynamic auto-scaling range per window increment
+      # Construct SVG smooth wave curve with points precisely aligned under each column box
       tide_values = []
       for start_time, _ in window_periods:
         gmt_time = start_time.astimezone(timezone.utc)
@@ -265,33 +265,35 @@ else:
         val = tides_data.get(tide_key, 2.0)
         tide_values.append(val)
 
-      svg_width = 360
+      svg_width = 1000  # Large viewBox width for high-precision proportional scaling via flex percentages
       svg_height = 36
       
       min_val = min(tide_values) if tide_values else 0.0
       max_val = max(tide_values) if tide_values else 5.0
-      
-      # Add padding to min/max so the curve spans nicely without clipping the top/bottom
       val_range = max_val - min_val
-      if val_range < 0.5:
-        padding = 0.5
-      else:
-        padding = val_range * 0.25
+      padding = 0.5 if val_range < 0.5 else val_range * 0.25
         
       min_tide = min_val - padding
       max_tide = max_val + padding
       if max_tide == min_tide:
         max_tide += 1.0
 
+      num_points = len(tide_values)
       points = []
-      step_x = svg_width / max(1, len(tide_values) - 1)
       for idx, val in enumerate(tide_values):
-        x = idx * step_x
+        # Evenly space points across the exact column percentages matching flex layout
+        if num_points > 1:
+          pct = (idx + 0.5) / num_points  # Centers point horizontally inside each flex column block
+        else:
+          pct = 0.5
+        x = pct * svg_width
         y = svg_height - 4 - ((val - min_tide) / (max_tide - min_tide)) * (svg_height - 8)
         points.append(f"{x},{y}")
       
       poly_points = " ".join(points)
-      area_points = f"0,{svg_height} " + poly_points + f" {svg_width},{svg_height}"
+      first_x = (0.5 / num_points) * svg_width if num_points > 0 else 0
+      last_x = ((num_points - 0.5) / num_points) * svg_width if num_points > 0 else svg_width
+      area_points = f"{first_x},{svg_height} " + poly_points + f" {last_x},{svg_height}"
 
       tide_svg_html = f"""
       <div style="background: #f0f9ff; border: 1px solid #bae6fd; border-radius: 6px; padding: 4px 6px; margin-bottom: 8px;">
