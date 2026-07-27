@@ -254,7 +254,10 @@ else:
         has_rain_wx = False
         for item in wx_items:
           for wx_dict in item.get("weather", []):
-            wx_type = (wx_dict.get("weather") or "").lower() if isinstance(wx_dict, dict) else str(wx_dict).lower()
+            if isinstance(wx_dict, dict):
+              wx_type = (wx_dict.get("weather") or "").lower()
+            else:
+              wx_type = str(wx_dict).lower()
             if any(w in wx_type for w in ["rain", "showers", "drizzle"]):
               has_rain_wx = True
         height_pct = pop if (pop > 0 and has_rain_wx) else 0
@@ -275,7 +278,10 @@ else:
         has_thunder_wx = False
         for item in wx_items:
           for wx_dict in item.get("weather", []):
-            wx_type = (wx_dict.get("weather") or "").lower() if isinstance(wx_dict, dict) else str(wx_dict).lower()
+            if isinstance(wx_dict, dict):
+              wx_type = (wx_dict.get("weather") or "").lower()
+            else:
+              wx_type = str(wx_dict).lower()
             if any(w in wx_type for w in ["thunderstorm", "tstorms", "thunder"]):
               has_thunder_wx = True
         thunder_pct = 100 if has_thunder_wx else 0
