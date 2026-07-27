@@ -55,7 +55,6 @@ def fetch_tides():
 
 
 def get_moon_phase_emoji(dt):
-  # Approximate moon phase calculation based on known New Moon reference date (Jan 11, 2024)
   known_new_moon = datetime(2024, 1, 11, tzinfo=timezone.utc)
   lunar_cycle = 29.5305877057
   delta = (dt.astimezone(timezone.utc) - known_new_moon).total_seconds() / 86400.0
@@ -271,30 +270,40 @@ else:
         rain_level = get_icon_level(pop)
         thunder_level = get_icon_level(thunder_pct)
 
-        # Calculate tide state by comparing adjacent hour predictions
+        # Robust tide state calculation evaluating absolute local peaks/troughs across a wider multi-hour sweep
         gmt_time = start_time.astimezone(timezone.utc)
         tide_key = gmt_time.strftime("%Y-%m-%d %H:00")
         tide_val = tides_data.get(tide_key)
 
         tide_state = "N/A"
         if tide_val is not None:
-          prev_time = gmt_time.replace(hour=gmt_time.hour - 1) if gmt_time.hour > 0 else gmt_time
-          next_time = gmt_time.replace(hour=gmt_time.hour + 1) if gmt_time.hour < 23 else gmt_time
-          prev_val = tides_data.get(prev_time.strftime("%Y-%m-%d %H:00"), tide_val)
-          next_val = tides_data.get(next_time.strftime("%Y-%m-%d %H:00"), tide_val)
+          # Pull values across a wider -2 to +2 hour bracket to accurately detect turning points and peaks
+          surrounding_vals = []
+          for offset in range(-2, 3):
+            check_time = gmt_time.replace(hour=(gmt_time.hour + offset) % 24) # simplified check key
+            # To handle date boundary accurately in lookup:
+            from datetime import timedelta
+            actual_check_time = gmt_time + timedelta(hours=offset)
+            chk_key = actual_check_time.strftime("%Y-%m-%d %H:00")
+            surrounding_vals.append(tides_data.get(chk_key, tide_val))
 
-          diff = next_val - prev_val
-          if abs(diff) < 0.03:
-            tide_state = "Slack Tide"
-          elif diff > 0:
-            tide_state = "Rising Tide"
-          else:
-            tide_state = "Falling Tide"
-          
-          if prev_val <= tide_val >= next_val:
+          # Peak or Trough check (High/Low)
+          is_peak = tide_val >= max(surrounding_vals)
+          is_trough = tide_val <= min(surrounding_vals)
+
+          if is_peak:
             tide_state = "High Tide"
-          elif prev_val >= tide_val <= next_val:
+          elif is_trough:
             tide_state = "Low Tide"
+          else:
+            # Check slope trend using broader lookahead/lookbehind (+2h vs -2h)
+            diff = surrounding_vals[4] - surrounding_vals[0] # value at +2h minus value at -2h
+            if abs(diff) < 0.05:
+              tide_state = "Slack Tide"
+            elif diff > 0:
+              tide_state = "Rising Tide"
+            else:
+              tide_state = "Falling Tide"
 
         grid_html += f"""
         <div style="flex: 1; min-width: 85px; background-color: {box_bg}; border: 2px solid {box_border}; border-radius: 6px; padding: 6px; text-align: center; font-size: 11px; color: black;">
