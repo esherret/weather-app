@@ -34,22 +34,21 @@ def fetch_forecast():
 
 @st.cache_data(ttl=3600)
 def fetch_tides():
-  # Fetches official hourly tide predictions from NOAA Port Canaveral (Trident Pier, ID: 8721604)
+  # Using NOAA CO-OPS API for Port Canaveral (Trident Pier, ID: 8721604)
   today_str = datetime.now().strftime("%Y%m%d")
   url = (
       f"https://api.tidesandcurrents.noaa.gov/api/prod/datagetter?"
       f"begin_date={today_str}&range=48&station=8721604&product=predictions"
-      f"&datum=MLLW&units=english&time_zone=lst_ldt&format=json"
+      f"&datum=MLLW&units=english&time_zone=gmt&format=json"
   )
   try:
     res = requests.get(url, timeout=5)
     if res.status_code == 200:
       data = res.json()
       predictions = data.get("predictions", [])
-      # Return a dictionary mapped by hour string "YYYY-MM-DD HH:MM"
       tide_map = {}
       for p in predictions:
-        # p['t'] format: "2026-07-27 00:00"
+        # NOAA GMT predictions format: "2026-07-27 00:00"
         tide_map[p["t"]] = float(p["v"])
       return tide_map
   except Exception:
@@ -245,13 +244,13 @@ else:
         rain_level = get_icon_level(pop)
         thunder_level = get_icon_level(thunder_pct)
         
-        # Match exact NOAA tide level for this hour key (YYYY-MM-DD HH:00)
-        tide_key = start_time.strftime("%Y-%m-%d %H:00")
+        # Convert local period start time to GMT to match NOAA CO-OPS GMT key matching
+        gmt_time = start_time.astimezone(timezone.utc)
+        tide_key = gmt_time.strftime("%Y-%m-%d %H:00")
         tide_val = tides_data.get(tide_key)
         
         if tide_val is not None:
           tide_display = f"{tide_val:.1f}ft"
-          # Simple visual wave graph bar based on tide height (assuming range 0ft to 5ft)
           bar_height = int(min(max(tide_val / 5.0, 0.05), 1.0) * 16)
           tide_graph = f'<div style="background: #e0f2fe; border-radius: 2px; height: 18px; display: flex; align-items: flex-end; justify-content: center; margin-bottom: 3px;" title="Tide: {tide_val} ft MLLW"><div style="width: 100%; height: {bar_height}px; background-color: #0284c7; border-radius: 1px;"></div></div>'
         else:
