@@ -257,37 +257,47 @@ else:
       grid_html += '</div>'
       st.html(grid_html)
 
-      # Construct SVG smooth wave curve spanning across the 4 hour increment
+      # Construct SVG smooth wave curve with dynamic auto-scaling range per window increment
       tide_values = []
       for start_time, _ in window_periods:
         gmt_time = start_time.astimezone(timezone.utc)
         tide_key = gmt_time.strftime("%Y-%m-%d %H:00")
-        val = tides_data.get(tide_key, 2.0) # default mid-range fallback if missing
+        val = tides_data.get(tide_key, 2.0)
         tide_values.append(val)
 
-      # Map tide heights to SVG coordinates (box width ~360px, height 26px)
       svg_width = 360
-      svg_height = 26
-      min_tide = 0.0
-      max_tide = 5.0
+      svg_height = 36
       
+      min_val = min(tide_values) if tide_values else 0.0
+      max_val = max(tide_values) if tide_values else 5.0
+      
+      # Add padding to min/max so the curve spans nicely without clipping the top/bottom
+      val_range = max_val - min_val
+      if val_range < 0.5:
+        padding = 0.5
+      else:
+        padding = val_range * 0.25
+        
+      min_tide = min_val - padding
+      max_tide = max_val + padding
+      if max_tide == min_tide:
+        max_tide += 1.0
+
       points = []
       step_x = svg_width / max(1, len(tide_values) - 1)
       for idx, val in enumerate(tide_values):
         x = idx * step_x
-        # Invert y since svg 0 is at top
-        y = svg_height - ((val - min_tide) / (max_tide - min_tide)) * (svg_height - 6) - 3
+        y = svg_height - 4 - ((val - min_tide) / (max_tide - min_tide)) * (svg_height - 8)
         points.append(f"{x},{y}")
       
       poly_points = " ".join(points)
-      # Create closed area points for light wave fill under the curve
       area_points = f"0,{svg_height} " + poly_points + f" {svg_width},{svg_height}"
 
       tide_svg_html = f"""
       <div style="background: #f0f9ff; border: 1px solid #bae6fd; border-radius: 6px; padding: 4px 6px; margin-bottom: 8px;">
         <svg width="100%" height="{svg_height}" viewBox="0 0 {svg_width} {svg_height}" preserveAspectRatio="none" style="display: block;">
           <polygon points="{area_points}" fill="#e0f2fe" />
-          <polyline points="{poly_points}" fill="none" stroke="#0284c7" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+          <polyline points="{poly_points}" fill="none" stroke="#0284c7" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" />
         </svg>
       </div>
       """
