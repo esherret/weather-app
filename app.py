@@ -56,14 +56,14 @@ def get_wind_arrow(direction_str):
 
 def get_window_type(hour):
   if 6 <= hour <= 9:
-    return "Morning (6AM-9AM)", 6, 9
+    return "Morning (6AM-9AM)"
   elif 10 <= hour <= 13:
-    return "Midday (10AM-1PM)", 10, 13
+    return "Midday (10AM-1PM)"
   elif 14 <= hour <= 17:
-    return "Afternoon (2PM-5PM)", 14, 17
+    return "Afternoon (2PM-5PM)"
   elif 18 <= hour <= 21:
-    return "Evening (6PM-9PM)", 18, 21
-  return None, None, None
+    return "Evening (6PM-9PM)"
+  return None
 
 
 def get_icon_level(pct):
@@ -79,6 +79,23 @@ def get_icon_level(pct):
       return 1
 
 
+def get_rating_colors(val, is_wind=False):
+  if is_wind:
+    if val > 13.0:
+      return "#ff4b4b", "#d93838"  # Red
+    elif val > 8.0:
+      return "#fffacc", "#997a00"  # Yellow
+    else:
+      return "#e6f4ea", "#137333"  # Green
+  else:  # Rain or Thunder percentage
+    if val > 25:
+      return "#ff4b4b", "#d93838"  # Red
+    elif val > 15:
+      return "#fffacc", "#997a00"  # Yellow
+    else:
+      return "#e6f4ea", "#137333"  # Green
+
+
 st.title("🌤️ Weather Windows")
 
 periods = fetch_forecast()
@@ -92,7 +109,7 @@ else:
     day_name = start_time.strftime("%A, %b %d")
     hour = start_time.hour
 
-    window_name, start_h, end_h = get_window_type(hour)
+    window_name = get_window_type(hour)
     if not window_name:
       continue
 
@@ -132,38 +149,34 @@ else:
         has_thunder = "thunder" in text_blob or "storm" in text_blob
         thunder_pct = 80 if has_thunder and "slight chance" not in short_fc else (30 if has_thunder else 0)
 
-        is_red = (
-            wind_val > 13.0
-            or pop > 25
-            or thunder_pct > 25
-        )
-        is_yellow = (
-            not is_red
-            and (wind_val > 8.0 or pop > 15 or thunder_pct > 15)
-        )
+        # Overall box border/background based on highest severity
+        is_red = wind_val > 13.0 or pop > 25 or thunder_pct > 25
+        is_yellow = not is_red and (wind_val > 8.0 or pop > 15 or thunder_pct > 15)
 
         if is_red:
-          bg_color = "#ffdddd"
-          border_color = "#ff4b4b"
-          text_color = "#d93838"
+          box_bg = "#ffdddd"
+          box_border = "#ff4b4b"
         elif is_yellow:
-          bg_color = "#fffacc"
-          border_color = "#ccaa00"
-          text_color = "#997a00"
+          box_bg = "#fffacc"
+          box_border = "#ccaa00"
         else:
-          bg_color = "#e6f4ea"
-          border_color = "#21c354"
-          text_color = "#137333"
+          box_bg = "#e6f4ea"
+          box_border = "#21c354"
+
+        # Individual item colors
+        _, wind_txt_color = get_rating_colors(wind_val, is_wind=True)
+        _, rain_txt_color = get_rating_colors(pop, is_wind=False)
+        _, thunder_txt_color = get_rating_colors(thunder_pct, is_wind=False)
 
         rain_level = get_icon_level(pop)
         thunder_level = get_icon_level(thunder_pct)
 
         grid_html += f"""
-        <div style="flex: 1; min-width: 85px; background-color: {bg_color}; border: 2px solid {border_color}; border-radius: 6px; padding: 6px; text-align: center; font-size: 11px;">
+        <div style="flex: 1; min-width: 85px; background-color: {box_bg}; border: 2px solid {box_border}; border-radius: 6px; padding: 6px; text-align: center; font-size: 11px;">
           <div style="font-weight: bold; margin-bottom: 4px; border-bottom: 1px solid rgba(0,0,0,0.1);">{time_label}</div>
-          <div style="margin-bottom: 4px; color: {text_color}; font-weight: bold;" title="Wind: {wind_val} mph {wind_dir}">{arrow} {int(wind_val)}mph<br><span style="font-size: 9px;">{wind_dir}</span></div>
-          <div style="margin-bottom: 2px; color: {text_color};" title="Chance of Rain: {pop}%">💧{'I'*rain_level} <span style="font-size:9px;">{pop}%</span></div>
-          <div style="color: {text_color};" title="Chance of Thunder: {thunder_pct}%">⚡{'I'*thunder_level} <span style="font-size:9px;">{thunder_pct}%</span></div>
+          <div style="margin-bottom: 4px; color: {wind_txt_color}; font-weight: bold;" title="Wind: {wind_val} mph {wind_dir}">{arrow} {int(wind_val)}mph<br><span style="font-size: 9px;">{wind_dir}</span></div>
+          <div style="margin-bottom: 2px; color: {rain_txt_color}; font-weight: bold;" title="Chance of Rain: {pop}%">💧{'I'*rain_level} <span style="font-size:9px;">{pop}%</span></div>
+          <div style="color: {thunder_txt_color}; font-weight: bold;" title="Chance of Thunder: {thunder_pct}%">⚡{'I'*thunder_level} <span style="font-size:9px;">{thunder_pct}%</span></div>
         </div>
         """
 
