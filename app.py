@@ -82,18 +82,18 @@ def get_icon_level(pct):
 def get_rating_bg_color(val, is_wind=False):
   if is_wind:
     if val > 13.0:
-      return "#ffdddd"  # Softer red
+      return "#ffdddd"
     elif val > 8.0:
-      return "#fffacc"  # Yellow
+      return "#fffacc"
     else:
-      return "#e6f4ea"  # Green
-  else:  # Rain or Thunder percentage
+      return "#e6f4ea"
+  else:
     if val > 25:
-      return "#ffdddd"  # Softer red
+      return "#ffdddd"
     elif val > 15:
-      return "#fffacc"  # Yellow
+      return "#fffacc"
     else:
-      return "#e6f4ea"  # Green
+      return "#e6f4ea"
 
 
 st.title("🌤️ Weather Windows")
@@ -149,7 +149,6 @@ else:
         has_thunder = "thunder" in text_blob or "storm" in text_blob
         thunder_pct = 80 if has_thunder and "slight chance" not in short_fc else (30 if has_thunder else 0)
 
-        # Overall box border based on highest severity
         is_red = wind_val > 13.0 or pop > 25 or thunder_pct > 25
         is_yellow = not is_red and (wind_val > 8.0 or pop > 15 or thunder_pct > 15)
 
@@ -163,7 +162,6 @@ else:
           box_border = "#21c354"
           box_bg = "#fff"
 
-        # Individual item fill backgrounds (using softer red #ffdddd)
         wind_bg = get_rating_bg_color(wind_val, is_wind=True)
         rain_bg = get_rating_bg_color(pop, is_wind=False)
         thunder_bg = get_rating_bg_color(thunder_pct, is_wind=False)
@@ -176,7 +174,7 @@ else:
           <div style="font-weight: bold; margin-bottom: 4px; border-bottom: 1px solid rgba(0,0,0,0.1);">{time_label}</div>
           <div style="margin-bottom: 4px; background-color: {wind_bg}; border-radius: 4px; padding: 2px;" title="Wind: {wind_val} mph {wind_dir}">{arrow} {int(wind_val)}mph<br><span style="font-size: 9px;">{wind_dir}</span></div>
           <div style="margin-bottom: 2px; background-color: {rain_bg}; border-radius: 4px; padding: 2px;" title="Chance of Rain: {pop}%">💧{'I'*rain_level} <span style="font-size:9px;">{pop}%</span></div>
-          <div style="background-color: {thunder_bg}; border-radius: 4px; padding: 2px; -webkit-text-stroke: 0.3px black;" title="Chance of Thunder: {thunder_pct}%">⚡{'I'*thunder_level} <span style="font-size:9px;">{thunder_pct}%</span></div>
+          <div style="background-color: {thunder_bg}; border-radius: 4px; padding: 2px; text-shadow: -1px -1px 0 #fff, 1px -1px 0 #fff, -1px 1px 0 #fff, 1px 1px 0 #fff;" title="Chance of Thunder: {thunder_pct}%">⚡{'I'*thunder_level} <span style="font-size:9px;">{thunder_pct}%</span></div>
         </div>
         """
 
