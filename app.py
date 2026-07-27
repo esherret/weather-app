@@ -86,7 +86,7 @@ def get_val_at_time(values_list, target_dt):
 
 
 def get_weather_phenomena(weather_values, target_dt):
-  for entry in values_list := weather_values:
+  for entry in weather_values:
     valid_str = entry["validTime"]
     parts = valid_str.split("/")
     start_dt = datetime.fromisoformat(parts[0])
@@ -103,7 +103,6 @@ def get_weather_phenomena(weather_values, target_dt):
     end_dt = start_dt + timedelta(hours=hours_to_add)
     if start_dt <= target_dt < end_dt:
       wx_list = entry.get("value", [])
-      # wx_list contains dicts with 'weather', 'coverage', 'attributes', etc.
       return wx_list
   return []
 
@@ -253,7 +252,6 @@ else:
             any(w in (wx_dict.get("weather") or "").lower() for w in ["rain", "showers", "drizzle"])
             for item in wx_items for wx_dict in item.get("weather", [])
         )
-        # Suppress completely if NWS grid weather data shows no rain phenomena for that hour
         height_pct = pop if (pop > 0 and has_rain_wx) else 0
         html_output += f"""
                 <div style="flex: 1; display: flex; flex-direction: column; justify-content: flex-end; height: 100%;">
