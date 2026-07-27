@@ -173,7 +173,10 @@ else:
         grid_html += f"""
         <div style="flex: 1; min-width: 85px; background-color: {box_bg}; border: 2px solid {box_border}; border-radius: 6px; padding: 6px; text-align: center; font-size: 11px; color: black;">
           <div style="font-weight: bold; margin-bottom: 4px; border-bottom: 1px solid rgba(0,0,0,0.1);">{time_label}</div>
-          <div style="margin-bottom: 4px; background-color: {wind_bg}; border-radius: 4px; padding: 2px;" title="Wind: {wind_val} mph {wind_dir}">{pointer_svg} {int(wind_val)}mph <span style="font-size: 9px;">{wind_dir}</span></div>
+          <div style="margin-bottom: 4px; background-color: {wind_bg}; border-radius: 4px; padding: 2px;" title="Wind: {wind_val} mph {wind_dir}">
+            <div>{int(wind_val)}mph</div>
+            <div>{pointer_svg} <span style="font-size: 9px;">{wind_dir}</span></div>
+          </div>
           <div style="margin-bottom: 2px; background-color: {rain_bg}; border-radius: 4px; padding: 2px;" title="Chance of Rain: {pop}%">💧{'I'*rain_level} <span style="font-size:9px;">{pop}%</span></div>
           <div style="background-color: {thunder_bg}; border-radius: 4px; padding: 2px;" title="Chance of Thunder: {thunder_pct}%"><span style="text-shadow: 1px 1px 0 #000;">⚡</span>{'I'*thunder_level} <span style="font-size:9px;">{thunder_pct}%</span></div>
         </div>
