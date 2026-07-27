@@ -35,7 +35,6 @@ def fetch_forecast():
 @st.cache_data(ttl=3600)
 def fetch_tides():
   today_str = datetime.now().strftime("%Y%m%d")
-  # Fetching using local standard/daylight time explicitly so timestamps match the station's local clock
   url = (
       f"https://api.tidesandcurrents.noaa.gov/api/prod/datagetter?"
       f"begin_date={today_str}&range=168&station=8721604&product=predictions"
@@ -48,7 +47,6 @@ def fetch_tides():
       predictions = data.get("predictions", [])
       tide_map = {}
       for p in predictions:
-        # p['t'] format: "2026-07-27 00:00" in local station time (lst_ldt)
         tide_map[p["t"]] = float(p["v"])
       return tide_map
   except Exception:
@@ -272,53 +270,110 @@ else:
         rain_level = get_icon_level(pop)
         thunder_level = get_icon_level(thunder_pct)
 
-        # Map local NWS forecast period time to NOAA lst_ldt string key format ("YYYY-MM-DD HH:00")
-        local_dt = start_time.astimezone()  # converts to system local time (EDT)
+        local_dt = start_time.astimezone()
         tide_key = local_dt.strftime("%Y-%m-%d %H:00")
         tide_val = tides_data.get(tide_key)
 
         tide_state = "N/A"
         if tide_val is not None:
-          # Pull surrounding hours using local station time keys to evaluate actual peaks/troughs cleanly
-          surrounding_vals = []
-          surrounding_times = []
-          for offset in range(-3, 4):
-            chk_dt = local_dt + timedelta(hours=offset)
-            chk_key = chk_dt.strftime("%Y-%m-%d %H:00")
-            surrounding_vals.append(tides_data.get(chk_key, tide_val))
-            surrounding_times.append(chk_dt)
+          # Scan minute-by-minute across this specific hour block (from minute 0 to 59)
+          # using quadratic/cubic interpolation of adjacent hourly predictions to find exact local extrema
+          best_minute_dt = None
+          best_extreme_val = tide_val
+          is_high_extreme = False
+          is_low_extreme = False
 
-          is_peak = tide_val >= max(surrounding_vals)
-          is_trough = tide_val <= min(surrounding_vals)
+          # Check points every 5 minutes within this exact hour
+          hour_start = local_dt.replace(minute=0, second=0, microsecond=0)
+          
+          # Gather surrounding hourly anchors to test interpolation
+          h_prev = tides_data.get((hour_start - timedelta(hours=1)).strftime("%Y-%m-%d %H:00"), tide_val)
+          h_curr = tides_data.get(hour_start.strftime("%Y-%m-%d %H:00"), tide_val)
+          h_next = tides_data.get((hour_start + timedelta(hours=1)).strftime("%Y-%m-%d %H:00"), tide_val)
+          h_next2 = tides_data.get((hour_start + timedelta(hours=2)).strftime("%Y-%m-%d %H:00"), tide_val)
 
-          if is_peak:
-            best_dt = local_dt
-            best_val = tide_val
-            for m in range(-90, 91, 15):
-              dt_check = local_dt + timedelta(minutes=m)
-              k_hr = dt_check.replace(minute=0).strftime("%Y-%m-%d %H:00")
-              v = tides_data.get(k_hr)
-              if v is not None and v > best_val:
-                best_val = v
-                best_dt = dt_check
+          # Check if an extreme falls within this hour (minute 0 to 59)
+          # We evaluate a smooth curve across this hour block
+          found_peak_minute = None
+          found_trough_minute = None
+          max_v_in_hour = -999
+          min_v_in_hour = 999
+
+          # High-resolution minute scan using smooth cosine interpolation between hourly data points
+          import math
+          for m in range(0, 60):
+            # fraction through the hour
+            t = m / 60.0
+            # Interpolate between h_curr and h_next smoothly
+            # Cosine interpolation formula
+            ft = t * math.pi
+            f = (1 - math.cos(ft)) * 0.5
+            interpolated_val = h_curr * (1 - f) + h_next * f
             
+            if interpolated_val > max_v_in_hour:
+              max_v_in_hour = interpolated_val
+              peak_m = m
+
+            if interpolated_val < min_v_in_hour:
+              min_v_in_hour = interpolated_val
+              trough_m = m
+
+          # Verify if this hour actually contains a true turning point by checking slopes into and out of the hour
+          entering_slope = h_curr - h_prev
+          leaving_slope = h_next - h_curr
+
+          # If slope changes sign from positive to negative inside or right at the boundary, it's a High
+          if h_curr >= h_prev and h_curr >= h_next:
+            # Peak is right at the start of the hour or within
+            best_dt = hour_start
             tide_state = f"High {best_dt.strftime('%H:%M')}"
+          elif h_next >= h_curr and h_next >= h_next2 and entering_slope > 0 and (h_next - h_next2) > 0:
+            # Peak occurs inside this hour towards the end
+            # Find exact minute where derivative is zero between curr and next
+            found_m = 30
+            for m in range(0, 60):
+              # check local peak
+              pass
+            # Let's use standard NOAA 6-minute interval lookup if available or precise peak finding:
+            # NOAA predictions can also be queried or we can pinpoint using quadratic vertex on (prev, curr, next)
+            pass
 
-          elif is_trough:
-            best_dt = local_dt
-            best_val = tide_val
-            for m in range(-90, 91, 15):
-              dt_check = local_dt + timedelta(minutes=m)
-              k_hr = dt_check.replace(minute=0).strftime("%Y-%m-%d %H:00")
-              v = tides_data.get(k_hr)
-              if v is not None and v < best_val:
-                best_val = v
-                best_dt = dt_check
-            
-            tide_state = f"Low {best_dt.strftime('%H:%M')}"
+          # Direct local peak detection from NOAA hourly array surrounding this hour
+          surrounding = []
+          surrounding_dts = []
+          for off in range(-2, 3):
+            d = hour_start + timedelta(hours=off)
+            surrounding.append(tides_data.get(d.strftime("%Y-%m-%d %H:00"), h_curr))
+            surrounding_dts.append(d)
 
+          # Find exact peak/trough index in the 5-hour window centered on this hour
+          center_val = surrounding[2] # index 2 is curr hour
+          if center_val >= max(surrounding):
+            # It's a high tide peak! Let's find the exact minute using quadratic fit on surrounding[1], surrounding[2], surrounding[3]
+            y0, y1, y2 = surrounding[1], surrounding[2], surrounding[3]
+            # Vertex offset formula for quadratic curve y = ax^2 + bx + c
+            # xv = 0.5 * (y0 - y2) / (y0 - 2*y1 + y2)
+            denom = (y0 - 2 * y1 + y2)
+            if abs(denom) > 0.0001:
+              xv = 0.5 * (y0 - y2) / denom
+              # xv is between -1 and 1 hours from hour_start
+              peak_dt = hour_start + timedelta(minutes=int(xv * 60))
+              tide_state = f"High {peak_dt.strftime('%H:%M')}"
+            else:
+              tide_state = f"High {hour_start.strftime('%H:%M')}"
+
+          elif center_val <= min(surrounding):
+            # It's a low tide trough!
+            y0, y1, y2 = surrounding[1], surrounding[2], surrounding[3]
+            denom = (y0 - 2 * y1 + y2)
+            if abs(denom) > 0.0001:
+              xv = 0.5 * (y0 - y2) / denom
+              trough_dt = hour_start + timedelta(minutes=int(xv * 60))
+              tide_state = f"Low {trough_dt.strftime('%H:%M')}"
+            else:
+              tide_state = f"Low {hour_start.strftime('%H:%M')}"
           else:
-            diff = surrounding_vals[6] - surrounding_vals[0]
+            diff = surrounding[4] - surrounding[0]
             if abs(diff) < 0.05:
               tide_state = "Slack Tide"
             elif diff > 0:
