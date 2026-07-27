@@ -102,8 +102,7 @@ def get_weather_phenomena(weather_values, target_dt):
 
     end_dt = start_dt + timedelta(hours=hours_to_add)
     if start_dt <= target_dt < end_dt:
-      wx_list = entry.get("value", [])
-      return wx_list
+      return entry.get("value", [])
   return []
 
 
@@ -167,7 +166,11 @@ else:
 
         for item in wx_items:
           for wx_dict in item.get("weather", []):
-            wx_type = (wx_dict.get("weather") or "").lower()
+            if isinstance(wx_dict, dict):
+              wx_type = (wx_dict.get("weather") or "").lower()
+            else:
+              wx_type = str(wx_dict).lower()
+
             if any(w in wx_type for w in ["rain", "showers", "drizzle", "precipitation"]):
               has_rain_wx = True
             if any(w in wx_type for w in ["thunderstorm", "tstorms", "thunder"]):
@@ -248,10 +251,12 @@ else:
         utc_time = start_time.astimezone(timezone.utc)
         pop = get_val_at_time(pop_values, utc_time) or 0
         wx_items = get_weather_phenomena(weather_values, utc_time)
-        has_rain_wx = any(
-            any(w in (wx_dict.get("weather") or "").lower() for w in ["rain", "showers", "drizzle"])
-            for item in wx_items for wx_dict in item.get("weather", [])
-        )
+        has_rain_wx = False
+        for item in wx_items:
+          for wx_dict in item.get("weather", []):
+            wx_type = (wx_dict.get("weather") or "").lower() if isinstance(wx_dict, dict) else str(wx_dict).lower()
+            if any(w in wx_type for w in ["rain", "showers", "drizzle"]):
+              has_rain_wx = True
         height_pct = pop if (pop > 0 and has_rain_wx) else 0
         html_output += f"""
                 <div style="flex: 1; display: flex; flex-direction: column; justify-content: flex-end; height: 100%;">
@@ -267,10 +272,12 @@ else:
       for start_time, period in window_periods:
         utc_time = start_time.astimezone(timezone.utc)
         wx_items = get_weather_phenomena(weather_values, utc_time)
-        has_thunder_wx = any(
-            any(w in (wx_dict.get("weather") or "").lower() for w in ["thunderstorm", "tstorms", "thunder"])
-            for item in wx_items for wx_dict in item.get("weather", [])
-        )
+        has_thunder_wx = False
+        for item in wx_items:
+          for wx_dict in item.get("weather", []):
+            wx_type = (wx_dict.get("weather") or "").lower() if isinstance(wx_dict, dict) else str(wx_dict).lower()
+            if any(w in wx_type for w in ["thunderstorm", "tstorms", "thunder"]):
+              has_thunder_wx = True
         thunder_pct = 100 if has_thunder_wx else 0
         bg_col = "#ff4b4b" if thunder_pct > 0 else "transparent"
         html_output += f"""
