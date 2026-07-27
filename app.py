@@ -98,7 +98,6 @@ else:
       if not window_periods:
         continue
 
-      # Evaluate window conditions based on hourly data inside the window
       max_wind = 0.0
       worst_precip_status = "GOOD"  # GOOD, CHECK, BAD
       worst_thunder_status = "GOOD"
@@ -114,7 +113,6 @@ else:
         detailed_fc = period["detailedForecast"].lower()
         text_blob = f"{short_fc} {detailed_fc}"
 
-        # Check thresholds for precipitation
         if any(
             w in text_blob
             for w in ["likely", "heavy", "showers", "rain", "storms"]
@@ -131,7 +129,6 @@ else:
                 "BAD" if worst_precip_status == "GOOD" else worst_precip_status
             )
 
-        # Check thresholds for thunder
         if "thunder" in text_blob or "storm" in text_blob:
           if "slight chance" in text_blob:
             if worst_thunder_status == "GOOD":
@@ -141,7 +138,6 @@ else:
           else:
             worst_thunder_status = "BAD"
 
-      # Determine overall window status badge
       if (
           max_wind > 15.0
           or worst_precip_status == "BAD"
@@ -167,14 +163,12 @@ else:
 
       reason_text = f" ({', '.join(reasons)})" if reasons else ""
 
-      # Compact row layout
       col_w, col_b = st.columns([2, 3])
       with col_w:
         st.markdown(f"**{window_name}**")
       with col_b:
         st.markdown(f"{badge}{reason_text}")
 
-      # Small hourly vertical sparkline/bar graph container
       bars_html = """
             <div style="display: flex; gap: 4px; align-items: flex-end; height: 35px; margin-bottom: 8px; background: rgba(0,0,0,0.03); padding: 2px 4px; border-radius: 4px;">
             """
@@ -188,10 +182,14 @@ else:
         if pop == 0 and any(
             w in short_fc for w in ["rain", "shower", "storm", "drizzle"]
         ):
-          pop = 40  # default assumption if text indicates precipitation without explicit POP value
+          pop = 40
 
-        height_pct = max(pop, 5)  # ensure tiny visibility bar
-        bar_color = "#ff4b4b" if "thunder" in short_fc or "storm" in short_fc else "#21c354"
+        height_pct = max(pop, 5)
+        bar_color = (
+            "#ff4b4b"
+            if "thunder" in short_fc or "storm" in short_fc
+            else "#21c354"
+        )
 
         bars_html += f"""
                 <div style="flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: flex-end; height: 100%;">
