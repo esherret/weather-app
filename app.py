@@ -71,7 +71,6 @@ periods = fetch_forecast()
 if not periods:
   st.error("Failed to retrieve data from the National Weather Service API.")
 else:
-  # Group periods by day, then by window type
   days_data = {}
   for period in periods:
     start_time = datetime.fromisoformat(period["startTime"])
@@ -99,7 +98,7 @@ else:
         continue
 
       max_wind = 0.0
-      worst_precip_status = "GOOD"  # GOOD, CHECK, BAD
+      worst_precip_status = "GOOD"
       worst_thunder_status = "GOOD"
       reasons = []
 
@@ -198,6 +197,7 @@ else:
                 </div>
                 """
       bars_html += "</div>"
-      st.markdown(bars_html, unsafe_allow_html=True)
+
+      st.html(bars_html)
 
     st.divider()
