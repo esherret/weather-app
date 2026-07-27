@@ -257,7 +257,6 @@ else:
       grid_html += '</div>'
       st.html(grid_html)
 
-      # Gather tide values and heights for each hour block
       tide_values = []
       for start_time, _ in window_periods:
         gmt_time = start_time.astimezone(timezone.utc)
@@ -280,29 +279,24 @@ else:
 
       num_points = len(tide_values)
       points = []
-      value_indicators = []
       
       for idx, val in enumerate(tide_values):
         pct = (idx + 0.5) / num_points if num_points > 0 else 0.5
         x = pct * svg_width
         y = svg_height - 6 - ((val - min_tide) / (max_tide - min_tide)) * (svg_height - 12)
         points.append(f"{x},{y}")
-        value_indicators.append(f'<div style="position: absolute; left: {pct*100}%; top: {y}px; transform: translate(-50%, -50%); width: 6px; height: 6px; background-color: #0284c7; border-radius: 50%;"></div>')
       
       poly_points = " ".join(points)
       first_x = (0.5 / num_points) * svg_width if num_points > 0 else 0
       last_x = ((num_points - 0.5) / num_points) * svg_width if num_points > 0 else svg_width
       area_points = f"{first_x},{svg_height} " + poly_points + f" {last_x},{svg_height}"
 
-      dots_html = "".join(value_indicators)
-
       tide_svg_html = f"""
-      <div style="background: #f0f9ff; border: 1px solid #bae6fd; border-radius: 6px; padding: 2px 6px; margin-bottom: 8px; position: relative;">
+      <div style="background: #f0f9ff; border: 1px solid #bae6fd; border-radius: 6px; padding: 2px 6px; margin-bottom: 8px;">
         <svg width="100%" height="{svg_height}" viewBox="0 0 {svg_width} {svg_height}" preserveAspectRatio="none" style="display: block; overflow: visible;">
           <polygon points="{area_points}" fill="#e0f2fe" />
           <polyline points="{poly_points}" fill="none" stroke="#0284c7" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" />
         </svg>
-        {dots_html}
       </div>
       """
       st.html(tide_svg_html)
