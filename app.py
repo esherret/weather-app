@@ -1,8 +1,7 @@
-from datetime import datetime
+from datetime import datetime, timezone
 import requests
 import streamlit as st
 
-# Configuration (Coordinates set for Kelly Park, Merritt Island, FL)
 LATITUDE = 28.4021
 LONGITUDE = -80.6629
 HEADERS = {
@@ -16,20 +15,26 @@ st.set_page_config(
 
 
 @st.cache_data(ttl=1800)
-def fetch_forecast():
+def fetch_grid_forecast():
   points_url = f"https://api.weather.gov/points/{LATITUDE},{LONGITUDE}"
-  response = requests.get(points_url, headers=HEADERS)
-  if response.status_code != 200:
+  res = requests.get(points_url, headers=HEADERS)
+  if res.status_code != 200:
     return None
 
-  point_data = response.json()
-  forecast_hourly_url = point_data["properties"]["forecastHourly"]
+  point_data = res.json()
+  grid_url = point_data["properties"]["forecastGridData"]
+  hourly_url = point_data["properties"]["forecastHourly"]
 
-  forecast_response = requests.get(forecast_hourly_url, headers=HEADERS)
-  if forecast_response.status_code != 200:
+  grid_res = requests.get(grid_url, headers=HEADERS)
+  hourly_res = requests.get(hourly_url, headers=HEADERS)
+
+  if grid_res.status_code != 200 or hourly_res.status_code != 200:
     return None
 
-  return forecast_response.json()["properties"]["periods"]
+  return {
+      "grid": grid_res.json()["properties"],
+      "hourly": hourly_res.json()["properties"]["periods"],
+  }
 
 
 def get_wind_arrow(direction_str):
@@ -64,13 +69,38 @@ def get_window_type(hour):
   return None, None, None
 
 
+def get_val_at_time(values_list, target_dt):
+  for entry in values_list:
+    valid_str = entry["validTime"]
+    parts = valid_str.split("/")
+    start_dt = datetime.fromisoformat(parts[0])
+    duration_str = parts[1]
+
+    # Simple ISO duration parser for hours (e.g., PT1H, PT3H)
+    hours_to_add = int(duration_str.replace("PT", "").replace("H", ""))
+    from datetime import timedelta
+
+    end_dt = start_dt + timedelta(hours=hours_to_add)
+
+    if start_dt <= target_dt < end_dt:
+      return entry["value"]
+  return 0
+
+
 st.title("🌤️ Weather Windows")
 
-periods = fetch_forecast()
+data = fetch_grid_forecast()
 
-if not periods:
-  st.error("Failed to retrieve data from the National Weather Service API.")
+if not data:
+  st.error("Failed to retrieve grid data from the National Weather Service API.")
 else:
+  grid = data["grid"]
+  periods = data["hourly"]
+
+  pop_values = grid.get("probabilityOfPrecipitation", {}).get("values", [])
+  wind_spd_values = grid.get("windSpeed", {}).get("values", [])
+  wind_dir_values = grid.get("windDirection", {}).get("values", [])
+
   days_data = {}
   for period in periods:
     start_time = datetime.fromisoformat(period["startTime"])
@@ -103,19 +133,18 @@ else:
       reasons = []
 
       for start_time, period in window_periods:
-        wind_str = period["windSpeed"]
-        wind_val = float(wind_str.split()[0])
-        if wind_val > max_wind:
-          max_wind = wind_val
+        utc_time = start_time.astimezone(timezone.utc)
+        pop_val = get_val_at_time(pop_values, utc_time) or 0
+        w_spd = get_val_at_time(wind_spd_values, utc_time) or 0
+        # Convert km/h to mph if necessary (NWS grid data windSpeed is usually km/h)
+        w_spd_mph = w_spd * 0.621371
+
+        if w_spd_mph > max_wind:
+          max_wind = w_spd_mph
 
         short_fc = period["shortForecast"].lower()
         detailed_fc = period["detailedForecast"].lower()
         text_blob = f"{short_fc} {detailed_fc}"
-
-        # Get exact NWS probability of precipitation value safely
-        pop_val = (
-            period.get("probabilityOfPrecipitation", {}).get("value") or 0
-        )
 
         if pop_val >= 50:
           worst_precip_status = "BAD"
@@ -136,7 +165,7 @@ else:
       ):
         badge = "🔴 BAD"
         if max_wind > 15.0:
-          reasons.append(f"Wind {max_wind}mph")
+          reasons.append(f"Wind {int(max_wind)}mph")
         if worst_precip_status == "BAD":
           reasons.append("Precip")
         if worst_thunder_status == "BAD":
@@ -193,7 +222,8 @@ else:
               <div style="display: flex; gap: 4px; align-items: flex-end; height: 22px;">
             """
       for start_time, period in window_periods:
-        pop = period.get("probabilityOfPrecipitation", {}).get("value") or 0
+        utc_time = start_time.astimezone(timezone.utc)
+        pop = get_val_at_time(pop_values, utc_time) or 0
         height_pct = max(pop, 4) if pop > 0 else 0
         html_output += f"""
                 <div style="flex: 1; display: flex; flex-direction: column; justify-content: flex-end; height: 100%;">
