@@ -34,7 +34,6 @@ def fetch_forecast():
 
 @st.cache_data(ttl=3600)
 def fetch_tides():
-  # Using NOAA CO-OPS API for Port Canaveral (Trident Pier, ID: 8721604)
   today_str = datetime.now().strftime("%Y%m%d")
   url = (
       f"https://api.tidesandcurrents.noaa.gov/api/prod/datagetter?"
@@ -48,7 +47,6 @@ def fetch_tides():
       predictions = data.get("predictions", [])
       tide_map = {}
       for p in predictions:
-        # NOAA GMT predictions format: "2026-07-27 00:00"
         tide_map[p["t"]] = float(p["v"])
       return tide_map
   except Exception:
@@ -207,7 +205,7 @@ else:
 
       st.markdown(f"**{window_name}**")
 
-      grid_html = '<div style="display: flex; gap: 6px; overflow-x: auto; padding-bottom: 6px;">'
+      grid_html = '<div style="display: flex; gap: 6px; overflow-x: auto; padding-bottom: 4px;">'
 
       for start_time, period in window_periods:
         time_label = start_time.strftime("%l%p").strip()
@@ -243,25 +241,10 @@ else:
 
         rain_level = get_icon_level(pop)
         thunder_level = get_icon_level(thunder_pct)
-        
-        # Convert local period start time to GMT to match NOAA CO-OPS GMT key matching
-        gmt_time = start_time.astimezone(timezone.utc)
-        tide_key = gmt_time.strftime("%Y-%m-%d %H:00")
-        tide_val = tides_data.get(tide_key)
-        
-        if tide_val is not None:
-          tide_display = f"{tide_val:.1f}ft"
-          bar_height = int(min(max(tide_val / 5.0, 0.05), 1.0) * 16)
-          tide_graph = f'<div style="background: #e0f2fe; border-radius: 2px; height: 18px; display: flex; align-items: flex-end; justify-content: center; margin-bottom: 3px;" title="Tide: {tide_val} ft MLLW"><div style="width: 100%; height: {bar_height}px; background-color: #0284c7; border-radius: 1px;"></div></div>'
-        else:
-          tide_display = "N/A"
-          tide_graph = '<div style="font-size: 9px; color: #888; margin-bottom: 3px;">No Tide Data</div>'
 
         grid_html += f"""
         <div style="flex: 1; min-width: 85px; background-color: {box_bg}; border: 2px solid {box_border}; border-radius: 6px; padding: 6px; text-align: center; font-size: 11px; color: black;">
-          <div style="font-weight: bold; margin-bottom: 2px; border-bottom: 1px solid rgba(0,0,0,0.1);">{time_label}</div>
-          {tide_graph}
-          <div style="font-size: 9px; color: #0369a1; font-weight: bold; margin-bottom: 4px;">🌊 {tide_display}</div>
+          <div style="font-weight: bold; margin-bottom: 4px; border-bottom: 1px solid rgba(0,0,0,0.1);">{time_label}</div>
           <div style="margin-bottom: 4px; background-color: {wind_bg}; border-radius: 4px; padding: 2px;" title="Wind: {wind_val} mph {wind_dir}">
             <div>{int(wind_val)}mph</div>
             <div>{pointer_svg}<span style="font-size: 9px;">{wind_dir}</span></div>
@@ -273,5 +256,21 @@ else:
 
       grid_html += '</div>'
       st.html(grid_html)
+
+      # Build individual tide trend wave graph underneath the 4 hour increment boxes
+      tide_graph_html = '<div style="background: #f0f9ff; border: 1px solid #bae6fd; border-radius: 6px; padding: 4px 8px; margin-bottom: 8px; display: flex; align-items: center; justify-content: space-around;" title="Port Canaveral Tide Trend (Port Trident Pier)">'
+      tide_graph_html += '<span style="font-size: 10px; font-weight: bold; color: #0369a1;">🌊 Tide Curve:</span>'
+      
+      for start_time, _ in window_periods:
+        gmt_time = start_time.astimezone(timezone.utc)
+        tide_key = gmt_time.strftime("%Y-%m-%d %H:00")
+        tide_val = tides_data.get(tide_key)
+        tide_str = f"{tide_val:.1f}ft" if tide_val is not None else "N/A"
+        hour_label = start_time.strftime("%l%p").strip()
+        
+        tide_graph_html += f'<div style="text-align: center; font-size: 10px; color: #0369a1;"><span style="color: #64748b;">{hour_label}:</span> <b>{tide_str}</b></div>'
+      
+      tide_graph_html += '</div>'
+      st.html(tide_graph_html)
 
     st.divider()
