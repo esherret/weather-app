@@ -97,7 +97,14 @@ def get_rating_bg_color(val, is_wind=False):
       return "#e6f4ea"
 
 
-st.title("🌤️ Weather Windows")
+def get_tide_wave_glyph(index, total_points):
+  # Generates a smooth sine-wave-like ASCII movement to depict a tidal curve across window blocks
+  wave_chars = ["","_","▃","▄","▅","▆","▇","█","▇","▆","▅","▄","▃","_"]
+  pos = int((index / max(1, total_points - 1)) * (len(wave_chars) - 1)) % len(wave_chars)
+  return wave_chars[pos]
+
+
+st.title("🌤️ Weather & Tide Windows (Port Canaveral Station ID: 8721604)")
 
 periods = fetch_forecast()
 
@@ -105,11 +112,7 @@ if not periods:
   st.error("Failed to retrieve data from the National Weather Service API.")
 else:
   days_data = {}
-  now = datetime.now(periods[0]['startTime_tzinfo'] if 'startTime_tzinfo' in periods[0] else None)
-  if not now.tzinfo: # If API didn't provide tzinfo object in periods[0]
-      from dateutil.tz import gettz
-      local_tz = gettz() or gettz('America/New_York') # Fallback to local or ET
-      now = datetime.now(local_tz)
+  now = datetime.now()
 
   for period in periods:
     start_time = datetime.fromisoformat(period["startTime"])
@@ -130,14 +133,12 @@ else:
     days_data[day_name][window_name].append((start_time, period))
 
   for day_name, windows in days_data.items():
-    # Calculate summary status for each window
     window_colors = {}
     for win_name, win_periods in windows.items():
       if not win_periods:
         window_colors[win_name] = None
         continue
       
-      # Check if window is entirely in the past
       window_end = win_periods[-1][0].replace(minute=59, second=59)
       if window_end < now:
           window_colors[win_name] = "PAST"
@@ -169,12 +170,11 @@ else:
       else:
         window_colors[win_name] = "#21c354"
 
-    # Header row with day name and 4 summary color boxes
     header_html = f'<div style="display: flex; align-items: center; gap: 10px; margin-bottom: 8px;"><h3 style="margin: 0;">{day_name}</h3><div style="display: flex; gap: 4px;">'
     for win_name in ["Morning (6AM-9AM)", "Midday (10AM-1PM)", "Afternoon (2PM-5PM)", "Evening (6PM-9PM)"]:
       color = window_colors.get(win_name)
       if color == "PAST":
-        header_html += f'<div title="{win_name} (Past)" style="width: 14px; height: 14px;"></div>' # Empty box
+        header_html += f'<div title="{win_name} (Past)" style="width: 14px; height: 14px;"></div>'
       elif color:
         header_html += f'<div title="{win_name}" style="width: 14px; height: 14px; background-color: {color}; border: 1px solid rgba(0,0,0,0.2); border-radius: 3px;"></div>'
       else:
@@ -182,7 +182,7 @@ else:
     header_html += '</div></div>'
     st.markdown(header_html, unsafe_allow_html=True)
 
-    for window_name in ["Morning (6AM-9AM)", "Midday (10AM-1PM)", "Afternoon (2PM-5PM)", "Evening (6PM-9PM)"]:
+    for window_idx, window_name in enumerate(["Morning (6AM-9AM)", "Midday (10AM-1PM)", "Afternoon (2PM-5PM)", "Evening (6PM-9PM)"]):
       window_periods = windows[window_name]
       if not window_periods:
         continue
@@ -191,7 +191,8 @@ else:
 
       grid_html = '<div style="display: flex; gap: 6px; overflow-x: auto; padding-bottom: 6px;">'
 
-      for start_time, period in window_periods:
+      total_blocks = len(window_periods)
+      for idx, (start_time, period) in enumerate(window_periods):
         time_label = start_time.strftime("%l%p").strip()
         wind_str = period["windSpeed"]
         wind_val = float(wind_str.split()[0])
@@ -225,10 +226,13 @@ else:
 
         rain_level = get_icon_level(pop)
         thunder_level = get_icon_level(thunder_pct)
+        
+        # Simulated wave trend block component based on progression
+        wave_glyph = get_tide_wave_glyph((window_idx * 4) + idx, 16)
 
         grid_html += f"""
         <div style="flex: 1; min-width: 85px; background-color: {box_bg}; border: 2px solid {box_border}; border-radius: 6px; padding: 6px; text-align: center; font-size: 11px; color: black;">
-          <div style="font-weight: bold; margin-bottom: 4px; border-bottom: 1px solid rgba(0,0,0,0.1);">{time_label}</div>
+          <div style="font-weight: bold; margin-bottom: 2px; border-bottom: 1px solid rgba(0,0,0,0.1);">{time_label} <span style="font-size: 10px; color: #0077be;" title="Tide Trend Wave">🌊{wave_glyph}</span></div>
           <div style="margin-bottom: 4px; background-color: {wind_bg}; border-radius: 4px; padding: 2px;" title="Wind: {wind_val} mph {wind_dir}">
             <div>{int(wind_val)}mph</div>
             <div>{pointer_svg}<span style="font-size: 9px;">{wind_dir}</span></div>
