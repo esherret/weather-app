@@ -52,7 +52,7 @@ def get_wind_svg(direction_str):
       "NNW": 157.5,
   }
   deg = degrees.get(direction_str.upper(), 0)
-  return f'<svg width="14" height="14" viewBox="0 0 24 24" style="transform: rotate({deg}deg); display: inline-block; vertical-align: middle; min-width: 14px; min-height: 14px;"><polygon points="12,2 6,22 12,18 18,22" fill="black"/></svg>'
+  return f'<span style="display: inline-block; transform: rotate({deg}deg); width: 14px; height: 14px; line-height: 14px; text-align: center; vertical-align: middle;">⬆️</span>'
 
 
 def get_window_type(hour):
