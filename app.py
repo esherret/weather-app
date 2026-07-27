@@ -35,10 +35,11 @@ def fetch_forecast():
 @st.cache_data(ttl=3600)
 def fetch_tides():
   today_str = datetime.now().strftime("%Y%m%d")
+  # Fetching using local standard/daylight time explicitly so timestamps match the station's local clock
   url = (
       f"https://api.tidesandcurrents.noaa.gov/api/prod/datagetter?"
       f"begin_date={today_str}&range=168&station=8721604&product=predictions"
-      f"&datum=MLLW&units=english&time_zone=gmt&format=json"
+      f"&datum=MLLW&units=english&time_zone=lst_ldt&format=json"
   )
   try:
     res = requests.get(url, timeout=5)
@@ -47,6 +48,7 @@ def fetch_tides():
       predictions = data.get("predictions", [])
       tide_map = {}
       for p in predictions:
+        # p['t'] format: "2026-07-27 00:00" in local station time (lst_ldt)
         tide_map[p["t"]] = float(p["v"])
       return tide_map
   except Exception:
@@ -270,48 +272,50 @@ else:
         rain_level = get_icon_level(pop)
         thunder_level = get_icon_level(thunder_pct)
 
-        gmt_time = start_time.astimezone(timezone.utc)
-        tide_key = gmt_time.strftime("%Y-%m-%d %H:00")
+        # Map local NWS forecast period time to NOAA lst_ldt string key format ("YYYY-MM-DD HH:00")
+        local_dt = start_time.astimezone()  # converts to system local time (EDT)
+        tide_key = local_dt.strftime("%Y-%m-%d %H:00")
         tide_val = tides_data.get(tide_key)
 
         tide_state = "N/A"
         if tide_val is not None:
+          # Pull surrounding hours using local station time keys to evaluate actual peaks/troughs cleanly
           surrounding_vals = []
+          surrounding_times = []
           for offset in range(-3, 4):
-            actual_check_time = gmt_time + timedelta(hours=offset)
-            chk_key = actual_check_time.strftime("%Y-%m-%d %H:00")
+            chk_dt = local_dt + timedelta(hours=offset)
+            chk_key = chk_dt.strftime("%Y-%m-%d %H:00")
             surrounding_vals.append(tides_data.get(chk_key, tide_val))
+            surrounding_times.append(chk_dt)
 
           is_peak = tide_val >= max(surrounding_vals)
           is_trough = tide_val <= min(surrounding_vals)
 
           if is_peak:
-            best_dt = gmt_time
+            best_dt = local_dt
             best_val = tide_val
             for m in range(-90, 91, 15):
-              dt_check = gmt_time + timedelta(minutes=m)
+              dt_check = local_dt + timedelta(minutes=m)
               k_hr = dt_check.replace(minute=0).strftime("%Y-%m-%d %H:00")
               v = tides_data.get(k_hr)
               if v is not None and v > best_val:
                 best_val = v
                 best_dt = dt_check
             
-            local_peak = best_dt.astimezone()
-            tide_state = f"High {local_peak.strftime('%H:%M')}"
+            tide_state = f"High {best_dt.strftime('%H:%M')}"
 
           elif is_trough:
-            best_dt = gmt_time
+            best_dt = local_dt
             best_val = tide_val
             for m in range(-90, 91, 15):
-              dt_check = gmt_time + timedelta(minutes=m)
+              dt_check = local_dt + timedelta(minutes=m)
               k_hr = dt_check.replace(minute=0).strftime("%Y-%m-%d %H:00")
               v = tides_data.get(k_hr)
               if v is not None and v < best_val:
                 best_val = v
                 best_dt = dt_check
             
-            local_trough = best_dt.astimezone()
-            tide_state = f"Low {local_trough.strftime('%H:%M')}"
+            tide_state = f"Low {best_dt.strftime('%H:%M')}"
 
           else:
             diff = surrounding_vals[6] - surrounding_vals[0]
