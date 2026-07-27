@@ -82,14 +82,14 @@ def get_icon_level(pct):
 def get_rating_bg_color(val, is_wind=False):
   if is_wind:
     if val > 13.0:
-      return "#ff4b4b"  # Red
+      return "#ffdddd"  # Softer red
     elif val > 8.0:
       return "#fffacc"  # Yellow
     else:
       return "#e6f4ea"  # Green
   else:  # Rain or Thunder percentage
     if val > 25:
-      return "#ff4b4b"  # Red
+      return "#ffdddd"  # Softer red
     elif val > 15:
       return "#fffacc"  # Yellow
     else:
@@ -163,7 +163,7 @@ else:
           box_border = "#21c354"
           box_bg = "#fff"
 
-        # Individual item fill backgrounds
+        # Individual item fill backgrounds (using softer red #ffdddd)
         wind_bg = get_rating_bg_color(wind_val, is_wind=True)
         rain_bg = get_rating_bg_color(pop, is_wind=False)
         thunder_bg = get_rating_bg_color(thunder_pct, is_wind=False)
