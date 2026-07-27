@@ -33,66 +33,26 @@ def fetch_forecast():
 
 
 def get_wind_arrow(direction_str):
-  # Pointing in the direction the wind is coming FROM
-  arrows = {
-      "N": "⬇️",
-      "NNE": "↙️",
-      "NE": "↙️",
-      "ENE": "⬅️",
-      "E": "⬅️",
-      "ESE": "↖️",
-      "SE": "↖️",
-      "SSE": "⬆️",
-      "S": "⬆️",
-      "SSW": "↗️",
-      "SW": "↗️",
-      "WSW": " شرق", # WSW wind comes from WSW, points ENE (↗️)
-      "W": "➡️",
-      "WNW": "↘️",
-      "NW": "↘️",
-      "NNW": "⬇️",
+  # Standard meteorological wind direction symbols (pointing where the wind blows TO)
+  symbols = {
+      "N": "↓",
+      "NNE": "↙",
+      "NE": "↙",
+      "ENE": "←",
+      "E": "←",
+      "ESE": "↖",
+      "SE": "↖",
+      "SSE": "↑",
+      "S": "↑",
+      "SSW": "↗",
+      "SW": "↗",
+      "WSW": "↗",
+      "W": "→",
+      "WNW": "↘",
+      "NW": "↘",
+      "NNW": "↓",
   }
-  # Correcting specific angles: WSW comes from West-Southwest, so it points East-North-East (↗️)
-  accurate_arrows = {
-      "N": "⬇️",
-      "NNE": "SSW",
-      "NE": "SW",
-      "ENE": "WSW",
-      "E": "⬅️",
-      "ESE": "WNW",
-      "SE": "NW",
-      "SSE": "NNW",
-      "S": "⬆️",
-      "SSW": "NNE",
-      "SW": "NE",
-      "WSW": "ENE",
-      "W": "➡️",
-      "WNW": "ESE",
-      "NW": "SE",
-      "NNW": "SSE",
-  }
-  # Let's use clean pointing arrows for all 16 cardinal/intercardinal points:
-  # Arrow points toward where wind is blowing TO (meteorological convention: wind FROM direction)
-  # If wind is WSW (coming from WSW), it blows towards ENE.
-  directional_arrows = {
-      "N": "⬇️",
-      "NNE": "↙️",
-      "NE": "↙️",
-      "ENE": "⬅️",
-      "E": "⬅️",
-      "ESE": "↖️",
-      "SE": "↖️",
-      "SSE": "⬆️",
-      "S": "⬆️",
-      "SSW": "↗️",
-      "SW": "↗️",
-      "WSW": "↗️",
-      "W": "➡️",
-      "WNW": "↘️",
-      "NW": "↘️",
-      "NNW": "⬇️",
-  }
-  return directional_arrows.get(direction_str.upper(), "⬆️")
+  return symbols.get(direction_str.upper(), "↑")
 
 
 def get_window_type(hour):
@@ -180,7 +140,7 @@ else:
         wind_str = period["windSpeed"]
         wind_val = float(wind_str.split()[0])
         wind_dir = period.get("windDirection", "N")
-        arrow = get_wind_arrow(wind_dir)
+        symbol = get_wind_arrow(wind_dir)
 
         pop = period.get("probabilityOfPrecipitation", {}).get("value") or 0
         short_fc = period["shortForecast"].lower()
@@ -213,7 +173,7 @@ else:
         grid_html += f"""
         <div style="flex: 1; min-width: 85px; background-color: {box_bg}; border: 2px solid {box_border}; border-radius: 6px; padding: 6px; text-align: center; font-size: 11px; color: black;">
           <div style="font-weight: bold; margin-bottom: 4px; border-bottom: 1px solid rgba(0,0,0,0.1);">{time_label}</div>
-          <div style="margin-bottom: 4px; background-color: {wind_bg}; border-radius: 4px; padding: 2px;" title="Wind: {wind_val} mph {wind_dir}">{arrow} {int(wind_val)}mph <span style="font-size: 9px;">{wind_dir}</span></div>
+          <div style="margin-bottom: 4px; background-color: {wind_bg}; border-radius: 4px; padding: 2px;" title="Wind: {wind_val} mph {wind_dir}">{symbol} {int(wind_val)}mph <span style="font-size: 9px;">{wind_dir}</span></div>
           <div style="margin-bottom: 2px; background-color: {rain_bg}; border-radius: 4px; padding: 2px;" title="Chance of Rain: {pop}%">💧{'I'*rain_level} <span style="font-size:9px;">{pop}%</span></div>
           <div style="background-color: {thunder_bg}; border-radius: 4px; padding: 2px;" title="Chance of Thunder: {thunder_pct}%"><span style="text-shadow: 1px 1px 0 #000;">⚡</span>{'I'*thunder_level} <span style="font-size:9px;">{thunder_pct}%</span></div>
         </div>
