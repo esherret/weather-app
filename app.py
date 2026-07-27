@@ -75,8 +75,6 @@ def get_val_at_time(values_list, target_dt):
     parts = valid_str.split("/")
     start_dt = datetime.fromisoformat(parts[0])
     duration_str = parts[1]
-
-    # Simple ISO duration parser for hours (e.g., PT1H, PT3H)
     hours_to_add = int(duration_str.replace("PT", "").replace("H", ""))
     from datetime import timedelta
 
@@ -99,7 +97,6 @@ else:
 
   pop_values = grid.get("probabilityOfPrecipitation", {}).get("values", [])
   wind_spd_values = grid.get("windSpeed", {}).get("values", [])
-  wind_dir_values = grid.get("windDirection", {}).get("values", [])
 
   days_data = {}
   for period in periods:
@@ -136,7 +133,6 @@ else:
         utc_time = start_time.astimezone(timezone.utc)
         pop_val = get_val_at_time(pop_values, utc_time) or 0
         w_spd = get_val_at_time(wind_spd_values, utc_time) or 0
-        # Convert km/h to mph if necessary (NWS grid data windSpeed is usually km/h)
         w_spd_mph = w_spd * 0.621371
 
         if w_spd_mph > max_wind:
@@ -224,7 +220,8 @@ else:
       for start_time, period in window_periods:
         utc_time = start_time.astimezone(timezone.utc)
         pop = get_val_at_time(pop_values, utc_time) or 0
-        height_pct = max(pop, 4) if pop > 0 else 0
+        # Only show height if pop > 0, completely zero out if 0% to match NWS charts
+        height_pct = pop if pop > 0 else 0
         html_output += f"""
                 <div style="flex: 1; display: flex; flex-direction: column; justify-content: flex-end; height: 100%;">
                   <div title="Rain: {pop}%" style="width: 100%; background-color: #21c354; height: {height_pct}%; border-radius: 2px;"></div>
@@ -245,7 +242,7 @@ else:
             or "storm" in short_fc
         )
         thunder_pct = 100 if has_thunder and "slight chance" not in short_fc else (40 if has_thunder else 0)
-        height_pct = max(thunder_pct, 4) if thunder_pct > 0 else 0
+        height_pct = thunder_pct if thunder_pct > 0 else 0
         bg_col = "#ff4b4b" if thunder_pct > 0 else "transparent"
         html_output += f"""
                 <div style="flex: 1; display: flex; flex-direction: column; justify-content: flex-end; height: 100%;">
