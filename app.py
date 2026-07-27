@@ -205,7 +205,20 @@ else:
 
       st.markdown(f"**{window_name}**")
 
-      grid_html = '<div style="display: flex; gap: 6px; overflow-x: auto; padding-bottom: 4px;">'
+      # Pre-calculate min/max tides for this specific window increment to map relative vertical positioning
+      win_tide_vals = []
+      for start_time, _ in window_periods:
+        gmt_time = start_time.astimezone(timezone.utc)
+        tide_key = gmt_time.strftime("%Y-%m-%d %H:00")
+        win_tide_vals.append(tides_data.get(tide_key, 2.0))
+      
+      min_t = min(win_tide_vals) if win_tide_vals else 0.0
+      max_t = max(win_tide_vals) if win_tide_vals else 5.0
+      t_spread = max_t - min_t
+      if t_spread < 0.2:
+        t_spread = 0.2  # prevent division by zero if completely flat
+
+      grid_html = '<div style="display: flex; gap: 6px; overflow-x: auto; padding-bottom: 6px;">'
 
       for start_time, period in window_periods:
         time_label = start_time.strftime("%l%p").strip()
@@ -242,9 +255,22 @@ else:
         rain_level = get_icon_level(pop)
         thunder_level = get_icon_level(thunder_pct)
 
+        # Get exact tide height and map it to a vertical percentage position inside the box header
+        gmt_time = start_time.astimezone(timezone.utc)
+        tide_key = gmt_time.strftime("%Y-%m-%d %H:00")
+        tide_val = tides_data.get(tide_key, 2.0)
+        
+        # Normalize between 0 (low -> bottom) and 1 (high -> top)
+        norm_pos = 1.0 - ((tide_val - min_t) / t_spread)
+        norm_pos = max(0.0, min(1.0, norm_pos))  # clamp between 0 and 1
+        top_pct = int(norm_pos * 80)  # maps vertically within header container space
+
         grid_html += f"""
-        <div style="flex: 1; min-width: 85px; background-color: {box_bg}; border: 2px solid {box_border}; border-radius: 6px; padding: 6px; text-align: center; font-size: 11px; color: black;">
-          <div style="font-weight: bold; margin-bottom: 4px; border-bottom: 1px solid rgba(0,0,0,0.1);">{time_label}</div>
+        <div style="flex: 1; min-width: 85px; background-color: {box_bg}; border: 2px solid {box_border}; border-radius: 6px; padding: 6px; text-align: center; font-size: 11px; color: black; position: relative; overflow: hidden;">
+          <div style="position: relative; height: 22px; margin-bottom: 4px; border-bottom: 1px solid rgba(0,0,0,0.1);">
+            <span style="font-weight: bold; position: absolute; left: 0; right: 0;">{time_label}</span>
+            <span style="position: absolute; left: 4px; top: {top_pct}%; font-size: 11px; transition: top 0.3s ease;" title="Tide: {tide_val:.1f} ft">🌊</span>
+          </div>
           <div style="margin-bottom: 4px; background-color: {wind_bg}; border-radius: 4px; padding: 2px;" title="Wind: {wind_val} mph {wind_dir}">
             <div>{int(wind_val)}mph</div>
             <div>{pointer_svg}<span style="font-size: 9px;">{wind_dir}</span></div>
@@ -256,49 +282,5 @@ else:
 
       grid_html += '</div>'
       st.html(grid_html)
-
-      tide_values = []
-      for start_time, _ in window_periods:
-        gmt_time = start_time.astimezone(timezone.utc)
-        tide_key = gmt_time.strftime("%Y-%m-%d %H:00")
-        val = tides_data.get(tide_key, 2.0)
-        tide_values.append(val)
-
-      svg_width = 1000
-      svg_height = 30
-      
-      min_val = min(tide_values) if tide_values else 0.0
-      max_val = max(tide_values) if tide_values else 5.0
-      val_range = max_val - min_val
-      padding = 0.5 if val_range < 0.5 else val_range * 0.25
-        
-      min_tide = min_val - padding
-      max_tide = max_val + padding
-      if max_tide == min_tide:
-        max_tide += 1.0
-
-      num_points = len(tide_values)
-      points = []
-      
-      for idx, val in enumerate(tide_values):
-        pct = (idx + 0.5) / num_points if num_points > 0 else 0.5
-        x = pct * svg_width
-        y = svg_height - 6 - ((val - min_tide) / (max_tide - min_tide)) * (svg_height - 12)
-        points.append(f"{x},{y}")
-      
-      poly_points = " ".join(points)
-      first_x = (0.5 / num_points) * svg_width if num_points > 0 else 0
-      last_x = ((num_points - 0.5) / num_points) * svg_width if num_points > 0 else svg_width
-      area_points = f"{first_x},{svg_height} " + poly_points + f" {last_x},{svg_height}"
-
-      tide_svg_html = f"""
-      <div style="background: #f0f9ff; border: 1px solid #bae6fd; border-radius: 6px; padding: 2px 6px; margin-bottom: 8px;">
-        <svg width="100%" height="{svg_height}" viewBox="0 0 {svg_width} {svg_height}" preserveAspectRatio="none" style="display: block; overflow: visible;">
-          <polygon points="{area_points}" fill="#e0f2fe" />
-          <polyline points="{poly_points}" fill="none" stroke="#0284c7" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" />
-        </svg>
-      </div>
-      """
-      st.html(tide_svg_html)
 
     st.divider()
