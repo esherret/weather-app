@@ -32,27 +32,29 @@ def fetch_forecast():
   return forecast_response.json()["properties"]["periods"]
 
 
-def get_wind_symbol(direction_str):
-  # Using precise vector arrows / compass pointers
-  symbols = {
-      "N": "⬇️",
-      "NNE": "⤲",
-      "NE": "↙️",
-      "ENE": "⬋",
-      "E": "⬅️",
-      "ESE": "⬉",
-      "SE": "↖️",
-      "SSE": "⤱",
-      "S": "⬆️",
-      "SSW": "⤰",
-      "SW": "↗️",
-      "WSW": "⬈",
-      "W": "➡️",
-      "WNW": "⬊",
-      "NW": "↘️",
-      "NNW": "⤳",
+def get_wind_arrow(direction_str):
+  # Map 16-point compass directions to exact degrees (where the wind is blowing TO)
+  degrees = {
+      "N": 180,
+      "NNE": 202.5,
+      "NE": 225,
+      "ENE": 247.5,
+      "E": 270,
+      "ESE": 292.5,
+      "SE": 315,
+      "SSE": 337.5,
+      "S": 0,
+      "SSW": 22.5,
+      "SW": 45,
+      "WSW": 67.5,
+      "W": 90,
+      "WNW": 112.5,
+      "NW": 135,
+      "NNW": 157.5,
   }
-  return symbols.get(direction_str.upper(), "⬆️")
+  deg = degrees.get(direction_str.upper(), 0)
+  # Using an SVG arrow rotated to the exact degree for absolute precision
+  return f'<svg width="12" height="12" viewBox="0 0 24 24" style="transform: rotate({deg}deg); display: inline-block; vertical-align: middle;"><path d="M12 2L4 20h7v-6h2v6h7L12 2z" fill="black"/></svg>'
 
 
 def get_window_type(hour):
@@ -140,7 +142,7 @@ else:
         wind_str = period["windSpeed"]
         wind_val = float(wind_str.split()[0])
         wind_dir = period.get("windDirection", "N")
-        symbol = get_wind_symbol(wind_dir)
+        arrow_svg = get_wind_arrow(wind_dir)
 
         pop = period.get("probabilityOfPrecipitation", {}).get("value") or 0
         short_fc = period["shortForecast"].lower()
@@ -173,7 +175,7 @@ else:
         grid_html += f"""
         <div style="flex: 1; min-width: 85px; background-color: {box_bg}; border: 2px solid {box_border}; border-radius: 6px; padding: 6px; text-align: center; font-size: 11px; color: black;">
           <div style="font-weight: bold; margin-bottom: 4px; border-bottom: 1px solid rgba(0,0,0,0.1);">{time_label}</div>
-          <div style="margin-bottom: 4px; background-color: {wind_bg}; border-radius: 4px; padding: 2px;" title="Wind: {wind_val} mph {wind_dir}">{symbol} {int(wind_val)}mph <span style="font-size: 9px;">{wind_dir}</span></div>
+          <div style="margin-bottom: 4px; background-color: {wind_bg}; border-radius: 4px; padding: 2px;" title="Wind: {wind_val} mph {wind_dir}">{arrow_svg} {int(wind_val)}mph <span style="font-size: 9px;">{wind_dir}</span></div>
           <div style="margin-bottom: 2px; background-color: {rain_bg}; border-radius: 4px; padding: 2px;" title="Chance of Rain: {pop}%">💧{'I'*rain_level} <span style="font-size:9px;">{pop}%</span></div>
           <div style="background-color: {thunder_bg}; border-radius: 4px; padding: 2px;" title="Chance of Thunder: {thunder_pct}%"><span style="text-shadow: 1px 1px 0 #000;">⚡</span>{'I'*thunder_level} <span style="font-size:9px;">{thunder_pct}%</span></div>
         </div>
