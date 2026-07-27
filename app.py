@@ -10,12 +10,6 @@ HEADERS = {
     "Accept": "application/geo+json",
 }
 
-TARGET_START_HOUR = 5
-TARGET_END_HOUR = 21
-MAX_WIND_SPEED_MPH = 15.0
-ALLOW_PRECIPITATION = False
-ALLOW_THUNDER = False
-
 st.set_page_config(
     page_title="Weather Window Monitor", page_icon="🌤️", layout="centered"
 )
@@ -40,115 +34,172 @@ def fetch_forecast():
 
 def get_wind_arrow(direction_str):
   arrows = {
-      "N": "⬇️ N",
-      "NNE": "↙️ NNE",
-      "NE": "↙️ NE",
-      "ENE": "⬅️ ENE",
-      "E": "⬅️ E",
-      "ESE": "↖️ ESE",
-      "SE": "↖️ SE",
-      "SSE": "⬆️ SSE",
-      "S": "⬆️ S",
-      "SSW": "↗️ SSW",
-      "SW": "↗️ SW",
-      "WSW": "➡️ WSW",
-      "W": "➡️ W",
-      "WNW": "↘️ WNW",
-      "NW": "↘️ NW",
-      "NNW": "⬇️ NNW",
+      "N": "⬇️",
+      "NNE": "↙️",
+      "NE": "↙️",
+      "ENE": "⬅️",
+      "E": "⬅️",
+      "ESE": "↖️",
+      "SE": "↖️",
+      "SSE": "⬆️",
+      "S": "⬆️",
+      "SSW": "↗️",
+      "SW": "↗️",
+      "WSW": "➡️",
+      "W": "➡️",
+      "WNW": "↘️",
+      "NW": "↘️",
+      "NNW": "⬇️",
   }
-  return arrows.get(direction_str.upper(), direction_str)
+  return arrows.get(direction_str.upper(), "⬆️")
 
 
-st.title("🌤️ Local Weather Window Monitor")
-st.write(
-    f"Checking conditions between **5:00 AM** and **9:00 PM** (Max Wind:"
-    f" {MAX_WIND_SPEED_MPH} mph)"
-)
+def get_window_type(hour):
+  if 5 <= hour <= 11:
+    return "Morning", 5, 11
+  elif 12 <= hour <= 16:
+    return "Midday", 12, 16
+  elif 17 <= hour <= 21:
+    return "Evening", 17, 21
+  return None, None, None
+
+
+st.title("🌤️ Weather Windows")
 
 periods = fetch_forecast()
 
 if not periods:
   st.error("Failed to retrieve data from the National Weather Service API.")
 else:
-  # Group periods by day of the week
+  # Group periods by day, then by window type
   days_data = {}
   for period in periods:
     start_time = datetime.fromisoformat(period["startTime"])
-    day_name = start_time.strftime("%A, %b %d, %Y")
+    day_name = start_time.strftime("%A, %b %d")
+    hour = start_time.hour
+
+    window_name, start_h, end_h = get_window_type(hour)
+    if not window_name:
+      continue
 
     if day_name not in days_data:
-      days_data[day_name] = []
-    days_data[day_name].append((start_time, period))
+      days_data[day_name] = {
+          "Morning": [],
+          "Midday": [],
+          "Evening": [],
+      }
+    days_data[day_name][window_name].append((start_time, period))
 
-  for day_name, day_periods in days_data.items():
-    st.subheader(day_name)
+  for day_name, windows in days_data.items():
+    st.markdown(f"### {day_name}")
 
-    has_valid_hours = False
-    for start_time, period in day_periods:
-      hour = start_time.hour
+    for window_name in ["Morning", "Midday", "Evening"]:
+      window_periods = windows[window_name]
+      if not window_periods:
+        continue
 
-      if TARGET_START_HOUR <= hour <= TARGET_END_HOUR:
-        has_valid_hours = True
-        time_str = start_time.strftime("%I:%M %p")
+      # Evaluate window conditions based on hourly data inside the window
+      max_wind = 0.0
+      worst_precip_status = "GOOD"  # GOOD, CHECK, BAD
+      worst_thunder_status = "GOOD"
+      reasons = []
 
+      for start_time, period in window_periods:
         wind_str = period["windSpeed"]
         wind_val = float(wind_str.split()[0])
-        wind_dir = period.get("windDirection", "")
-        wind_arrow_text = get_wind_arrow(wind_dir)
+        if wind_val > max_wind:
+          max_wind = wind_val
 
-        short_forecast = period["shortForecast"].lower()
-        detailed_forecast = period["detailedForecast"].lower()
+        short_fc = period["shortForecast"].lower()
+        detailed_fc = period["detailedForecast"].lower()
+        text_blob = f"{short_fc} {detailed_fc}"
 
-        # Extract precise probability of precipitation if available, else fallback
-        pop = period.get("probabilityOfPrecipitation", {}).get("value")
-        if pop is None:
-          pop = 80 if any(w in short_forecast for w in ["rain", "shower", "storm"]) else 0
-
-        # Estimate thunderstorm probability based on text
-        has_thunder = "thunder" in short_forecast or "thunder" in detailed_forecast
-        storm_pop = pop if has_thunder and ("storm" in short_forecast or "thunder" in short_forecast) else (100 if has_thunder else 0)
-
-        has_wind_issue = wind_val > MAX_WIND_SPEED_MPH
-        has_precip = pop > 0 and not ALLOW_PRECIPITATION
-        has_thunder_issue = storm_pop > 0 and not ALLOW_THUNDER
-
-        is_good_window = not (has_wind_issue or has_precip or has_thunder_issue)
-        reasons = []
-
-        if has_wind_issue:
-          reasons.append(f"High wind ({wind_str})")
-        if has_precip:
-          reasons.append(f"Precipitation ({pop}%)")
-        if has_thunder_issue:
-          reasons.append(f"Thunder risk ({storm_pop}%)")
-
-        with st.container():
-          col1, col2 = st.columns([1, 2])
-          with col1:
-            st.markdown(f"**{time_str}**")
-            st.text(f"Wind: {wind_arrow_text} ({wind_str})")
-          with col2:
-            if is_good_window:
-              st.success("🟢 GOOD WINDOW - Conditions clear")
-            else:
-              st.error(f"🔴 BAD WINDOW - {', '.join(reasons)}")
-
-            # Custom styled bar graphs for Showers and Thunderstorms
-            st.write(f"Showers: {pop}%")
-            st.progress(min(max(pop, 0), 100))
-
-            st.write(f"Thunderstorms: {storm_pop}%")
-            # Red styled progress bar using markdown container simulation since default is blue
-            st.markdown(
-                f"""
-                <div style="background-color: #ddd; border-radius: 4px; overflow: hidden; width: 100%; height: 10px;">
-                  <div style="background-color: #ff4b4b; width: {storm_pop}%; height: 10px;"></div>
-                </div>
-                """,
-                unsafe_allow_html=True,
+        # Check thresholds for precipitation
+        if any(
+            w in text_blob
+            for w in ["likely", "heavy", "showers", "rain", "storms"]
+        ):
+          if "slight chance" not in text_blob and "chance" not in text_blob:
+            worst_precip_status = "BAD"
+          elif worst_precip_status != "BAD":
+            worst_precip_status = "CHECK"
+        elif "chance" in text_blob or "slight chance" in text_blob:
+          if "slight chance" in text_blob and worst_precip_status == "GOOD":
+            worst_precip_status = "CHECK"
+          elif "chance" in text_blob:
+            worst_precip_status = (
+                "BAD" if worst_precip_status == "GOOD" else worst_precip_status
             )
-          st.divider()
 
-    if not has_valid_hours:
-      st.info(f"No tracking hours available for {day_name} within the selected window.")
+        # Check thresholds for thunder
+        if "thunder" in text_blob or "storm" in text_blob:
+          if "slight chance" in text_blob:
+            if worst_thunder_status == "GOOD":
+              worst_thunder_status = "CHECK"
+          elif "chance" in text_blob:
+            worst_thunder_status = "BAD"
+          else:
+            worst_thunder_status = "BAD"
+
+      # Determine overall window status badge
+      if (
+          max_wind > 15.0
+          or worst_precip_status == "BAD"
+          or worst_thunder_status == "BAD"
+      ):
+        badge = "🔴 BAD"
+        if max_wind > 15.0:
+          reasons.append(f"Wind {max_wind}mph")
+        if worst_precip_status == "BAD":
+          reasons.append("Precip")
+        if worst_thunder_status == "BAD":
+          reasons.append("Thunder")
+      elif (
+          worst_precip_status == "CHECK" or worst_thunder_status == "CHECK"
+      ):
+        badge = "🟡 CHECK"
+        if worst_precip_status == "CHECK":
+          reasons.append("Slight precip")
+        if worst_thunder_status == "CHECK":
+          reasons.append("Slight thunder")
+      else:
+        badge = "🟢 GOOD"
+
+      reason_text = f" ({', '.join(reasons)})" if reasons else ""
+
+      # Compact row layout
+      col_w, col_b = st.columns([2, 3])
+      with col_w:
+        st.markdown(f"**{window_name}**")
+      with col_b:
+        st.markdown(f"{badge}{reason_text}")
+
+      # Small hourly vertical sparkline/bar graph container
+      bars_html = """
+            <div style="display: flex; gap: 4px; align-items: flex-end; height: 35px; margin-bottom: 8px; background: rgba(0,0,0,0.03); padding: 2px 4px; border-radius: 4px;">
+            """
+      for start_time, period in window_periods:
+        t_label = start_time.strftime("%I%p").lstrip("0")
+        wind_dir = period.get("windDirection", "N")
+        arrow = get_wind_arrow(wind_dir)
+
+        pop = period.get("probabilityOfPrecipitation", {}).get("value") or 0
+        short_fc = period["shortForecast"].lower()
+        if pop == 0 and any(
+            w in short_fc for w in ["rain", "shower", "storm", "drizzle"]
+        ):
+          pop = 40  # default assumption if text indicates precipitation without explicit POP value
+
+        height_pct = max(pop, 5)  # ensure tiny visibility bar
+        bar_color = "#ff4b4b" if "thunder" in short_fc or "storm" in short_fc else "#21c354"
+
+        bars_html += f"""
+                <div style="flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: flex-end; height: 100%;">
+                  <div title="{t_label}: {pop}% precip, Wind {wind_dir}" style="width: 100%; background-color: {bar_color}; height: {height_pct}%; border-radius: 2px;"></div>
+                  <span style="font-size: 9px; line-height: 1; color: #555; margin-top: 1px;">{arrow}</span>
+                </div>
+                """
+      bars_html += "</div>"
+      st.markdown(bars_html, unsafe_allow_html=True)
+
+    st.divider()
