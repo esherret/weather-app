@@ -54,6 +54,31 @@ def fetch_tides():
   return {}
 
 
+def get_moon_phase_emoji(dt):
+  # Approximate moon phase calculation based on known New Moon reference date (Jan 11, 2024)
+  known_new_moon = datetime(2024, 1, 11, tzinfo=timezone.utc)
+  lunar_cycle = 29.5305877057
+  delta = (dt.astimezone(timezone.utc) - known_new_moon).total_seconds() / 86400.0
+  phase = (delta % lunar_cycle) / lunar_cycle
+
+  if phase < 0.03 or phase > 0.97:
+    return "🌑", "New Moon"
+  elif phase < 0.22:
+    return "🌒", "Waxing Crescent"
+  elif phase < 0.28:
+    return "🌓", "First Quarter"
+  elif phase < 0.47:
+    return "🌔", "Waxing Gibbous"
+  elif phase < 0.53:
+    return "🌕", "Full Moon"
+  elif phase < 0.72:
+    return "🌖", "Waning Gibbous"
+  elif phase < 0.78:
+    return "🌗", "Last Quarter"
+  else:
+    return "🌘", "Waning Crescent"
+
+
 def get_wind_svg(direction_str):
   degrees = {
       "N": 180,
@@ -141,6 +166,7 @@ else:
 
     if day_name not in days_data:
       days_data[day_name] = {
+          "date_obj": start_time,
           "Morning (6AM-9AM)": [],
           "Midday (10AM-1PM)": [],
           "Afternoon (2PM-5PM)": [],
@@ -150,7 +176,8 @@ else:
 
   for day_name, windows in days_data.items():
     window_colors = {}
-    for win_name, win_periods in windows.items():
+    for win_name in ["Morning (6AM-9AM)", "Midday (10AM-1PM)", "Afternoon (2PM-5PM)", "Evening (6PM-9PM)"]:
+      win_periods = windows[win_name]
       if not win_periods:
         window_colors[win_name] = None
         continue
@@ -186,7 +213,9 @@ else:
       else:
         window_colors[win_name] = "#21c354"
 
-    header_html = f'<div style="display: flex; align-items: center; gap: 10px; margin-bottom: 8px;"><h3 style="margin: 0;">{day_name}</h3><div style="display: flex; gap: 4px;">'
+    moon_emoji, moon_desc = get_moon_phase_emoji(windows["date_obj"])
+
+    header_html = f'<div style="display: flex; align-items: center; gap: 10px; margin-bottom: 8px;"><h3 style="margin: 0;"><span title="{moon_desc}" style="margin-right: 6px;">{moon_emoji}</span>{day_name}</h3><div style="display: flex; gap: 4px;">'
     for win_name in ["Morning (6AM-9AM)", "Midday (10AM-1PM)", "Afternoon (2PM-5PM)", "Evening (6PM-9PM)"]:
       color = window_colors.get(win_name)
       if color == "PAST":
