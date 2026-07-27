@@ -168,25 +168,38 @@ else:
       with col_b:
         st.markdown(f"{badge}{reason_text}")
 
-      # Two separate horizontal visual rows for Rain/Showers vs Thunderstorms, with military time labels and doubled arrow size
+      # Rows for Wind Arrows, Wind Direction Text, Rain Bar Graph, Thunder Bar Graph, and AM/PM Time Labels
       html_output = """
-            <div style="display: flex; flex-direction: column; gap: 6px; margin-bottom: 8px; background: rgba(0,0,0,0.03); padding: 4px; border-radius: 4px;">
-              <!-- Wind Arrows Row -->
+            <div style="display: flex; flex-direction: column; gap: 5px; margin-bottom: 8px; background: rgba(0,0,0,0.03); padding: 4px; border-radius: 4px;">
+              <!-- Wind Arrows Row (Doubled size) -->
               <div style="display: flex; gap: 4px; align-items: center;">
             """
       for start_time, period in window_periods:
         wind_dir = period.get("windDirection", "N")
         arrow = get_wind_arrow(wind_dir)
         html_output += f"""
-                <div style="flex: 1; display: flex; justify-content: center; align-items: center; font-size: 18px; line-height: 1;">
+                <div style="flex: 1; display: flex; justify-content: center; align-items: center; font-size: 26px; line-height: 1;">
                   {arrow}
+                </div>
+                """
+      html_output += """
+              </div>
+
+              <!-- Wind Direction Text Row -->
+              <div style="display: flex; gap: 4px;">
+            """
+      for start_time, period in window_periods:
+        wind_dir = period.get("windDirection", "N")
+        html_output += f"""
+                <div style="flex: 1; text-align: center; font-size: 9px; font-weight: bold; color: #444;">
+                  {wind_dir}
                 </div>
                 """
       html_output += """
               </div>
               
               <!-- Rain Bar Graph Row -->
-              <div style="display: flex; gap: 4px; align-items: flex-end; height: 25px;">
+              <div style="display: flex; gap: 4px; align-items: flex-end; height: 22px;">
             """
       for start_time, period in window_periods:
         pop = period.get("probabilityOfPrecipitation", {}).get("value") or 0
@@ -205,7 +218,7 @@ else:
               </div>
 
               <!-- Thunder Bar Graph Row -->
-              <div style="display: flex; gap: 4px; align-items: flex-end; height: 25px;">
+              <div style="display: flex; gap: 4px; align-items: flex-end; height: 22px;">
             """
       for start_time, period in window_periods:
         short_fc = period["shortForecast"].lower()
@@ -222,14 +235,14 @@ else:
       html_output += """
               </div>
 
-              <!-- Military Time Labels Row -->
+              <!-- AM/PM Time Labels Row -->
               <div style="display: flex; gap: 4px; border-top: 1px solid rgba(0,0,0,0.1); padding-top: 2px;">
             """
       for start_time, period in window_periods:
-        mil_hour = start_time.strftime("%H")
+        time_label = start_time.strftime("%l%p").strip()  # e.g., 5AM, 12PM
         html_output += f"""
-                <div style="flex: 1; text-align: center; font-size: 9px; color: #555;">
-                  {mil_hour}
+                <div style="flex: 1; text-align: center; font-size: 8px; color: #555; white-space: nowrap;">
+                  {time_label}
                 </div>
                 """
       html_output += """
