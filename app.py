@@ -205,22 +205,9 @@ else:
 
       st.markdown(f"**{window_name}**")
 
-      # Pre-calculate min/max tides for this specific window increment to map relative vertical positioning
-      win_tide_vals = []
-      for start_time, _ in window_periods:
-        gmt_time = start_time.astimezone(timezone.utc)
-        tide_key = gmt_time.strftime("%Y-%m-%d %H:00")
-        win_tide_vals.append(tides_data.get(tide_key, 2.0))
-      
-      min_t = min(win_tide_vals) if win_tide_vals else 0.0
-      max_t = max(win_tide_vals) if win_tide_vals else 5.0
-      t_spread = max_t - min_t
-      if t_spread < 0.2:
-        t_spread = 0.2  # prevent division by zero if completely flat
-
       grid_html = '<div style="display: flex; gap: 6px; overflow-x: auto; padding-bottom: 6px;">'
 
-      for start_time, period in window_periods:
+      for i, (start_time, period) in enumerate(window_periods):
         time_label = start_time.strftime("%l%p").strip()
         wind_str = period["windSpeed"]
         wind_val = float(wind_str.split()[0])
@@ -255,22 +242,37 @@ else:
         rain_level = get_icon_level(pop)
         thunder_level = get_icon_level(thunder_pct)
 
-        # Get exact tide height and map it to a vertical percentage position inside the box header
+        # Calculate tide state by comparing adjacent hour predictions
         gmt_time = start_time.astimezone(timezone.utc)
         tide_key = gmt_time.strftime("%Y-%m-%d %H:00")
-        tide_val = tides_data.get(tide_key, 2.0)
-        
-        # Normalize between 0 (low -> bottom) and 1 (high -> top)
-        norm_pos = 1.0 - ((tide_val - min_t) / t_spread)
-        norm_pos = max(0.0, min(1.0, norm_pos))  # clamp between 0 and 1
-        top_pct = int(norm_pos * 80)  # maps vertically within header container space
+        tide_val = tides_data.get(tide_key)
+
+        tide_state = "N/A"
+        if tide_val is not None:
+          # Get previous and next hour values to determine slope/state
+          prev_time = gmt_time.replace(hour=gmt_time.hour - 1) if gmt_time.hour > 0 else gmt_time
+          next_time = gmt_time.replace(hour=gmt_time.hour + 1) if gmt_time.hour < 23 else gmt_time
+          prev_val = tides_data.get(prev_time.strftime("%Y-%m-%d %H:00"), tide_val)
+          next_val = tides_data.get(next_time.strftime("%Y-%m-%d %H:00"), tide_val)
+
+          diff = next_val - prev_val
+          if abs(diff) < 0.03:
+            tide_state = "Slack Tide"
+          elif diff > 0:
+            tide_state = "Rising Tide"
+          else:
+            tide_state = "Falling Tide"
+          
+          # Check local peak/trough for High/Low override
+          if prev_val <= tide_val >= next_val:
+            tide_state = "High Tide"
+          elif prev_val >= tide_val <= next_val:
+            tide_state = "Low Tide"
 
         grid_html += f"""
-        <div style="flex: 1; min-width: 85px; background-color: {box_bg}; border: 2px solid {box_border}; border-radius: 6px; padding: 6px; text-align: center; font-size: 11px; color: black; position: relative; overflow: hidden;">
-          <div style="position: relative; height: 22px; margin-bottom: 4px; border-bottom: 1px solid rgba(0,0,0,0.1);">
-            <span style="font-weight: bold; position: absolute; left: 0; right: 0;">{time_label}</span>
-            <span style="position: absolute; left: 4px; top: {top_pct}%; font-size: 11px; transition: top 0.3s ease;" title="Tide: {tide_val:.1f} ft">🌊</span>
-          </div>
+        <div style="flex: 1; min-width: 85px; background-color: {box_bg}; border: 2px solid {box_border}; border-radius: 6px; padding: 6px; text-align: center; font-size: 11px; color: black;">
+          <div style="font-weight: bold; margin-bottom: 2px; border-bottom: 1px solid rgba(0,0,0,0.1);">{time_label}</div>
+          <div style="font-size: 9px; color: #0369a1; font-weight: bold; margin-bottom: 4px; background-color: #f0f9ff; border-radius: 3px; padding: 2px;" title="Tide State">🌊 {tide_state}</div>
           <div style="margin-bottom: 4px; background-color: {wind_bg}; border-radius: 4px; padding: 2px;" title="Wind: {wind_val} mph {wind_dir}">
             <div>{int(wind_val)}mph</div>
             <div>{pointer_svg}<span style="font-size: 9px;">{wind_dir}</span></div>
