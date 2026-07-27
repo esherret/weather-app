@@ -64,6 +64,19 @@ def get_window_type(hour):
   return None, None, None
 
 
+def get_icon_level(pct):
+  if pct >= 75:
+      return 5
+  elif pct >= 55:
+      return 4
+  elif pct >= 25:
+      return 3
+  elif pct >= 15:
+      return 2
+  else:
+      return 1
+
+
 st.title("🌤️ Weather Windows")
 
 periods = fetch_forecast()
@@ -97,157 +110,60 @@ else:
       if not window_periods:
         continue
 
-      max_wind = 0.0
-      worst_precip_status = "GOOD"
-      worst_thunder_status = "GOOD"
-      reasons = []
+      st.markdown(f"**{window_name}**")
+
+      grid_html = '<div style="display: flex; gap: 6px; overflow-x: auto; padding-bottom: 6px;">'
 
       for start_time, period in window_periods:
+        time_label = start_time.strftime("%l%p").strip()
         wind_str = period["windSpeed"]
         wind_val = float(wind_str.split()[0])
-        if wind_val > max_wind:
-          max_wind = wind_val
+        wind_dir = period.get("windDirection", "N")
+        arrow = get_wind_arrow(wind_dir)
 
+        pop = period.get("probabilityOfPrecipitation", {}).get("value") or 0
         short_fc = period["shortForecast"].lower()
         detailed_fc = period["detailedForecast"].lower()
         text_blob = f"{short_fc} {detailed_fc}"
 
-        if any(
-            w in text_blob
-            for w in ["likely", "heavy", "showers", "rain", "storms"]
-        ):
-          if "slight chance" not in text_blob and "chance" not in text_blob:
-            worst_precip_status = "BAD"
-          elif worst_precip_status != "BAD":
-            worst_precip_status = "CHECK"
-        elif "chance" in text_blob or "slight chance" in text_blob:
-          if "slight chance" in text_blob and worst_precip_status == "GOOD":
-            worst_precip_status = "CHECK"
-          elif "chance" in text_blob:
-            worst_precip_status = (
-                "BAD" if worst_precip_status == "GOOD" else worst_precip_status
-            )
+        # Estimate thunder chance based on text description or explicit indicators
+        has_thunder = "thunder" in text_blob or "storm" in text_blob
+        thunder_pct = 80 if has_thunder and "slight chance" not in text_blob else (30 if has_thunder else 0)
 
-        if "thunder" in text_blob or "storm" in text_blob:
-          if "slight chance" in text_blob:
-            if worst_thunder_status == "GOOD":
-              worst_thunder_status = "CHECK"
-          elif "chance" in text_blob:
-            worst_thunder_status = "BAD"
-          else:
-            worst_thunder_status = "BAD"
-
-      if (
-          max_wind > 15.0
-          or worst_precip_status == "BAD"
-          or worst_thunder_status == "BAD"
-      ):
-        badge = "🔴 BAD"
-        if max_wind > 15.0:
-          reasons.append(f"Wind {int(max_wind)}mph")
-        if worst_precip_status == "BAD":
-          reasons.append("Precip")
-        if worst_thunder_status == "BAD":
-          reasons.append("Thunder")
-      elif (
-          worst_precip_status == "CHECK" or worst_thunder_status == "CHECK"
-      ):
-        badge = "🟡 CHECK"
-        if worst_precip_status == "CHECK":
-          reasons.append("Slight precip")
-        if worst_thunder_status == "CHECK":
-          reasons.append("Slight thunder")
-      else:
-        badge = "🟢 GOOD"
-
-      reason_text = f" ({', '.join(reasons)})" if reasons else ""
-
-      col_w, col_b = st.columns([2, 3])
-      with col_w:
-        st.markdown(f"**{window_name}**")
-      with col_b:
-        st.markdown(f"{badge}{reason_text}")
-
-      html_output = """
-            <div style="display: flex; flex-direction: column; gap: 5px; margin-bottom: 8px; background: rgba(0,0,0,0.03); padding: 4px; border-radius: 4px;">
-              <!-- Wind Arrows Row -->
-              <div style="display: flex; gap: 4px; align-items: center;">
-            """
-      for start_time, period in window_periods:
-        wind_dir = period.get("windDirection", "N")
-        arrow = get_wind_arrow(wind_dir)
-        html_output += f"""
-                <div style="flex: 1; display: flex; justify-content: center; align-items: center; font-size: 26px; line-height: 1;">
-                  {arrow}
-                </div>
-                """
-      html_output += """
-              </div>
-
-              <!-- Wind Direction Text Row -->
-              <div style="display: flex; gap: 4px;">
-            """
-      for start_time, period in window_periods:
-        wind_dir = period.get("windDirection", "N")
-        html_output += f"""
-                <div style="flex: 1; text-align: center; font-size: 9px; font-weight: bold; color: #444;">
-                  {wind_dir}
-                </div>
-                """
-      html_output += """
-              </div>
-              
-              <!-- Rain Bar Graph Row -->
-              <div style="display: flex; gap: 4px; align-items: flex-end; height: 22px;">
-            """
-      for start_time, period in window_periods:
-        pop = period.get("probabilityOfPrecipitation", {}).get("value") or 0
-        height_pct = pop if pop > 0 else 0
-        html_output += f"""
-                <div style="flex: 1; display: flex; flex-direction: column; justify-content: flex-end; height: 100%;">
-                  <div title="Rain: {pop}%" style="width: 100%; background-color: #21c354; height: {height_pct}%; border-radius: 2px;"></div>
-                </div>
-                """
-      html_output += """
-              </div>
-
-              <!-- Thunder Bar Graph Row -->
-              <div style="display: flex; gap: 4px; align-items: flex-end; height: 22px;">
-            """
-      for start_time, period in window_periods:
-        short_fc = period["shortForecast"].lower()
-        detailed_fc = period["detailedForecast"].lower()
-        has_thunder = (
-            "thunder" in short_fc
-            or "thunder" in detailed_fc
-            or "storm" in short_fc
+        # Indicator thresholds calculation
+        is_red = (
+            wind_val > 13.0
+            or pop > 25
+            or thunder_pct > 25
         )
-        thunder_pct = 100 if has_thunder and "slight chance" not in short_fc else (40 if has_thunder else 0)
-        height_pct = thunder_pct if thunder_pct > 0 else 0
-        bg_col = "#ff4b4b" if thunder_pct > 0 else "transparent"
-        html_output += f"""
-                <div style="flex: 1; display: flex; flex-direction: column; justify-content: flex-end; height: 100%;">
-                  <div title="Thunder Risk" style="width: 100%; background-color: {bg_col}; height: {height_pct}%; border-radius: 2px;"></div>
-                </div>
-                """
-      html_output += """
-              </div>
+        is_yellow = (
+            not is_red
+            and (wind_val > 8.0 or pop > 15 or thunder_pct > 15)
+        )
 
-              <!-- AM/PM Time Labels Row -->
-              <div style="display: flex; gap: 4px; border-top: 1px solid rgba(0,0,0,0.1); padding-top: 2px;">
-            """
-      for start_time, period in window_periods:
-        time_label = start_time.strftime("%l%p").strip()
-        html_output += f"""
-                <div style="flex: 1; text-align: center; font-size: 8px; color: #555; white-space: nowrap;">
-                  {time_label}
-                </div>
-                """
-      html_output += """
-              </div>
-            </div>
-            """
+        if is_red:
+          bg_color = "#ffdddd"
+          border_color = "#ff4b4b"
+        elif is_yellow:
+          bg_color = "#fffacc"
+          border_color = "#ffcc00"
+        else:
+          bg_color = "#e6f4ea"
+          border_color = "#21c354"
 
-      st.html(html_output)
+        rain_level = get_icon_level(pop)
+        thunder_level = get_icon_level(thunder_pct)
+
+        grid_html += f"""
+        <div style="flex: 1; min-width: 85px; background-color: {bg_color}; border: 2px solid {border_color}; border-radius: 6px; padding: 6px; text-align: center; font-size: 11px;">
+          <div style="font-weight: bold; margin-bottom: 4px; border-bottom: 1px solid rgba(0,0,0,0.1);">{time_label}</div>
+          <div style="margin-bottom: 4px;" title="Wind: {wind_val} mph {wind_dir}">{arrow} {int(wind_val)}mph<br><span style="font-size: 9px; font-weight: bold;">{wind_dir}</span></div>
+          <div style="margin-bottom: 2px;" title="Chance of Rain: {pop}%">💧{'I'*rain_level} <span style="font-size:9px;">{pop}%</span></div>
+          <div title="Chance of Thunder: {thunder_pct}%">⚡{'I'*thunder_level} <span style="font-size:9px;">{thunder_pct}%</span></div>
+        </div>
+        """
+
+      grid_html += '</div>'
+      st.html(grid_html)
 
     st.divider()
