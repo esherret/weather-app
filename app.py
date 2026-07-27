@@ -33,6 +33,7 @@ def fetch_forecast():
 
 
 def get_wind_arrow(direction_str):
+  # Pointing in the direction the wind is coming FROM
   arrows = {
       "N": "⬇️",
       "NNE": "↙️",
@@ -45,13 +46,53 @@ def get_wind_arrow(direction_str):
       "S": "⬆️",
       "SSW": "↗️",
       "SW": "↗️",
-      "WSW": "➡️",
+      "WSW": " شرق", # WSW wind comes from WSW, points ENE (↗️)
       "W": "➡️",
       "WNW": "↘️",
       "NW": "↘️",
       "NNW": "⬇️",
   }
-  return arrows.get(direction_str.upper(), "⬆️")
+  # Correcting specific angles: WSW comes from West-Southwest, so it points East-North-East (↗️)
+  accurate_arrows = {
+      "N": "⬇️",
+      "NNE": "SSW",
+      "NE": "SW",
+      "ENE": "WSW",
+      "E": "⬅️",
+      "ESE": "WNW",
+      "SE": "NW",
+      "SSE": "NNW",
+      "S": "⬆️",
+      "SSW": "NNE",
+      "SW": "NE",
+      "WSW": "ENE",
+      "W": "➡️",
+      "WNW": "ESE",
+      "NW": "SE",
+      "NNW": "SSE",
+  }
+  # Let's use clean pointing arrows for all 16 cardinal/intercardinal points:
+  # Arrow points toward where wind is blowing TO (meteorological convention: wind FROM direction)
+  # If wind is WSW (coming from WSW), it blows towards ENE.
+  directional_arrows = {
+      "N": "⬇️",
+      "NNE": "↙️",
+      "NE": "↙️",
+      "ENE": "⬅️",
+      "E": "⬅️",
+      "ESE": "↖️",
+      "SE": "↖️",
+      "SSE": "⬆️",
+      "S": "⬆️",
+      "SSW": "↗️",
+      "SW": "↗️",
+      "WSW": "↗️",
+      "W": "➡️",
+      "WNW": "↘️",
+      "NW": "↘️",
+      "NNW": "⬇️",
+  }
+  return directional_arrows.get(direction_str.upper(), "⬆️")
 
 
 def get_window_type(hour):
