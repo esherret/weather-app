@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, timezone
 import requests
 import streamlit as st
 
@@ -98,7 +98,6 @@ def get_rating_bg_color(val, is_wind=False):
 
 
 def get_tide_wave_glyph(index, total_points):
-  # Generates a smooth sine-wave-like ASCII movement to depict a tidal curve across window blocks
   wave_chars = ["","_","▃","▄","▅","▆","▇","█","▇","▆","▅","▄","▃","_"]
   pos = int((index / max(1, total_points - 1)) * (len(wave_chars) - 1)) % len(wave_chars)
   return wave_chars[pos]
@@ -112,7 +111,7 @@ if not periods:
   st.error("Failed to retrieve data from the National Weather Service API.")
 else:
   days_data = {}
-  now = datetime.now()
+  now = datetime.now(timezone.utc)
 
   for period in periods:
     start_time = datetime.fromisoformat(period["startTime"])
@@ -227,7 +226,6 @@ else:
         rain_level = get_icon_level(pop)
         thunder_level = get_icon_level(thunder_pct)
         
-        # Simulated wave trend block component based on progression
         wave_glyph = get_tide_wave_glyph((window_idx * 4) + idx, 16)
 
         grid_html += f"""
