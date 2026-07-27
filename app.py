@@ -33,7 +33,6 @@ def fetch_forecast():
 
 
 def get_wind_arrow(direction_str):
-  # Map 16-point compass directions to exact degrees (where the wind is blowing TO)
   degrees = {
       "N": 180,
       "NNE": 202.5,
@@ -53,8 +52,7 @@ def get_wind_arrow(direction_str):
       "NNW": 157.5,
   }
   deg = degrees.get(direction_str.upper(), 0)
-  # Using an SVG arrow rotated to the exact degree for absolute precision
-  return f'<svg width="12" height="12" viewBox="0 0 24 24" style="transform: rotate({deg}deg); display: inline-block; vertical-align: middle;"><path d="M12 2L4 20h7v-6h2v6h7L12 2z" fill="black"/></svg>'
+  return f'<svg width="14" height="14" viewBox="0 0 24 24" style="transform: rotate({deg}deg); display: inline-block; vertical-align: middle;"><path d="M12 2L4 20h7v-6h2v6h7L12 2z" fill="black"/></svg>'
 
 
 def get_window_type(hour):
