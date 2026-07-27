@@ -85,6 +85,29 @@ def get_val_at_time(values_list, target_dt):
   return 0
 
 
+def get_weather_phenomena(weather_values, target_dt):
+  for entry in values_list := weather_values:
+    valid_str = entry["validTime"]
+    parts = valid_str.split("/")
+    start_dt = datetime.fromisoformat(parts[0])
+    duration_str = parts[1]
+    hours_to_add = int(
+        duration_str.replace("PT", "")
+        .replace("H", "")
+        .replace("D", "")
+        .replace("T", "")
+        or "1"
+    )
+    from datetime import timedelta
+
+    end_dt = start_dt + timedelta(hours=hours_to_add)
+    if start_dt <= target_dt < end_dt:
+      wx_list = entry.get("value", [])
+      # wx_list contains dicts with 'weather', 'coverage', 'attributes', etc.
+      return wx_list
+  return []
+
+
 st.title("🌤️ Weather Windows")
 
 data = fetch_grid_forecast()
@@ -97,6 +120,7 @@ else:
 
   pop_values = grid.get("probabilityOfPrecipitation", {}).get("values", [])
   wind_spd_values = grid.get("windSpeed", {}).get("values", [])
+  weather_values = grid.get("weather", {}).get("values", [])
 
   days_data = {}
   for period in periods:
@@ -134,25 +158,29 @@ else:
         pop_val = get_val_at_time(pop_values, utc_time) or 0
         w_spd = get_val_at_time(wind_spd_values, utc_time) or 0
         w_spd_mph = w_spd * 0.621371
+        wx_items = get_weather_phenomena(weather_values, utc_time)
 
         if w_spd_mph > max_wind:
           max_wind = w_spd_mph
 
-        short_fc = period["shortForecast"].lower()
-        detailed_fc = period["detailedForecast"].lower()
-        text_blob = f"{short_fc} {detailed_fc}"
+        has_rain_wx = False
+        has_thunder_wx = False
 
-        if pop_val >= 50:
+        for item in wx_items:
+          for wx_dict in item.get("weather", []):
+            wx_type = (wx_dict.get("weather") or "").lower()
+            if any(w in wx_type for w in ["rain", "showers", "drizzle", "precipitation"]):
+              has_rain_wx = True
+            if any(w in wx_type for w in ["thunderstorm", "tstorms", "thunder"]):
+              has_thunder_wx = True
+
+        if pop_val >= 50 and has_rain_wx:
           worst_precip_status = "BAD"
-        elif pop_val > 0 and worst_precip_status != "BAD":
+        elif pop_val > 0 and has_rain_wx and worst_precip_status != "BAD":
           worst_precip_status = "CHECK"
 
-        if "thunder" in text_blob or "storm" in text_blob:
-          if "slight chance" in text_blob:
-            if worst_thunder_status == "GOOD":
-              worst_thunder_status = "CHECK"
-          else:
-            worst_thunder_status = "BAD"
+        if has_thunder_wx:
+          worst_thunder_status = "BAD"
 
       if (
           max_wind > 15.0
@@ -220,8 +248,13 @@ else:
       for start_time, period in window_periods:
         utc_time = start_time.astimezone(timezone.utc)
         pop = get_val_at_time(pop_values, utc_time) or 0
-        # Only show height if pop > 0, completely zero out if 0% to match NWS charts
-        height_pct = pop if pop > 0 else 0
+        wx_items = get_weather_phenomena(weather_values, utc_time)
+        has_rain_wx = any(
+            any(w in (wx_dict.get("weather") or "").lower() for w in ["rain", "showers", "drizzle"])
+            for item in wx_items for wx_dict in item.get("weather", [])
+        )
+        # Suppress completely if NWS grid weather data shows no rain phenomena for that hour
+        height_pct = pop if (pop > 0 and has_rain_wx) else 0
         html_output += f"""
                 <div style="flex: 1; display: flex; flex-direction: column; justify-content: flex-end; height: 100%;">
                   <div title="Rain: {pop}%" style="width: 100%; background-color: #21c354; height: {height_pct}%; border-radius: 2px;"></div>
@@ -234,19 +267,17 @@ else:
               <div style="display: flex; gap: 4px; align-items: flex-end; height: 22px;">
             """
       for start_time, period in window_periods:
-        short_fc = period["shortForecast"].lower()
-        detailed_fc = period["detailedForecast"].lower()
-        has_thunder = (
-            "thunder" in short_fc
-            or "thunder" in detailed_fc
-            or "storm" in short_fc
+        utc_time = start_time.astimezone(timezone.utc)
+        wx_items = get_weather_phenomena(weather_values, utc_time)
+        has_thunder_wx = any(
+            any(w in (wx_dict.get("weather") or "").lower() for w in ["thunderstorm", "tstorms", "thunder"])
+            for item in wx_items for wx_dict in item.get("weather", [])
         )
-        thunder_pct = 100 if has_thunder and "slight chance" not in short_fc else (40 if has_thunder else 0)
-        height_pct = thunder_pct if thunder_pct > 0 else 0
+        thunder_pct = 100 if has_thunder_wx else 0
         bg_col = "#ff4b4b" if thunder_pct > 0 else "transparent"
         html_output += f"""
                 <div style="flex: 1; display: flex; flex-direction: column; justify-content: flex-end; height: 100%;">
-                  <div title="Thunder Risk" style="width: 100%; background-color: {bg_col}; height: {height_pct}%; border-radius: 2px;"></div>
+                  <div title="Thunder Risk" style="width: 100%; background-color: {bg_col}; height: {thunder_pct}%; border-radius: 2px;"></div>
                 </div>
                 """
       html_output += """
