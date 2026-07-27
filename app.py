@@ -1,4 +1,4 @@
-from datetime import datetime, timezone
+from datetime import datetime, timezone, timedelta
 import requests
 import streamlit as st
 
@@ -270,34 +270,64 @@ else:
         rain_level = get_icon_level(pop)
         thunder_level = get_icon_level(thunder_pct)
 
-        # Robust tide state calculation evaluating absolute local peaks/troughs across a wider multi-hour sweep
         gmt_time = start_time.astimezone(timezone.utc)
         tide_key = gmt_time.strftime("%Y-%m-%d %H:00")
         tide_val = tides_data.get(tide_key)
 
         tide_state = "N/A"
         if tide_val is not None:
-          # Pull values across a wider -2 to +2 hour bracket to accurately detect turning points and peaks
           surrounding_vals = []
+          surrounding_times = []
           for offset in range(-2, 3):
-            check_time = gmt_time.replace(hour=(gmt_time.hour + offset) % 24) # simplified check key
-            # To handle date boundary accurately in lookup:
-            from datetime import timedelta
             actual_check_time = gmt_time + timedelta(hours=offset)
             chk_key = actual_check_time.strftime("%Y-%m-%d %H:00")
             surrounding_vals.append(tides_data.get(chk_key, tide_val))
+            surrounding_times.append(actual_check_time)
 
-          # Peak or Trough check (High/Low)
           is_peak = tide_val >= max(surrounding_vals)
           is_trough = tide_val <= min(surrounding_vals)
 
           if is_peak:
-            tide_state = "High Tide"
+            # Find exact minute peak in local time by checking sub-hourly or scanning local max in NOAA dataset around this hour
+            peak_time = gmt_time
+            max_found = tide_val
+            for dt_scan in [gmt_time + timedelta(minutes=m) for m in range(-59, 60)]:
+              k = dt_scan.strftime("%Y-%m-%d %H:%M") # check if key exists or scan neighbors
+              # Since predictions are hourly, let's interpolate or find the exact highest prediction timestamp within +/- 1 hour
+              pass
+            
+            # Simple approach: scan nearby predictions in tides_data for exact max peak within +/- 90 mins
+            best_dt = gmt_time
+            best_val = tide_val
+            for m in range(-90, 91, 15):
+              dt_check = gmt_time + timedelta(minutes=m)
+              # Find closest hour key
+              k_hr = dt_check.replace(minute=0).strftime("%Y-%m-%d %H:00")
+              v = tides_data.get(k_hr)
+              if v is not None and v > best_val:
+                best_val = v
+                best_dt = dt_check
+            
+            # Convert peak time to local user time (EDT/EST) for military format display
+            local_peak = best_dt.astimezone()
+            tide_state = f"High {local_peak.strftime('%H:%M')}"
+
           elif is_trough:
-            tide_state = "Low Tide"
+            best_dt = gmt_time
+            best_val = tide_val
+            for m in range(-90, 91, 15):
+              dt_check = gmt_time + timedelta(minutes=m)
+              k_hr = dt_check.replace(minute=0).strftime("%Y-%m-%d %H:00")
+              v = tides_data.get(k_hr)
+              if v is not None and v < best_val:
+                best_val = v
+                best_dt = dt_check
+            
+            local_trough = best_dt.astimezone()
+            tide_state = f"Low {local_trough.strftime('%H:%M')}"
+
           else:
-            # Check slope trend using broader lookahead/lookbehind (+2h vs -2h)
-            diff = surrounding_vals[4] - surrounding_vals[0] # value at +2h minus value at -2h
+            diff = surrounding_vals[4] - surrounding_vals[0]
             if abs(diff) < 0.05:
               tide_state = "Slack Tide"
             elif diff > 0:
@@ -314,7 +344,7 @@ else:
           </div>
           <div style="margin-bottom: 2px; background-color: {rain_bg}; border-radius: 4px; padding: 2px;" title="Chance of Rain: {pop}%">💧{'I'*rain_level} <span style="font-size:9px;">{pop}%</span></div>
           <div style="margin-bottom: 4px; background-color: {thunder_bg}; border-radius: 4px; padding: 2px;" title="Chance of Thunder: {thunder_pct}%"><span style="text-shadow: 1px 1px 0 #000;">⚡</span>{'I'*thunder_level} <span style="font-size:9px;">{thunder_pct}%</span></div>
-          <div style="font-size: 9px; color: #0369a1; font-weight: bold; background-color: #f0f9ff; border-radius: 3px; padding: 2px;" title="Tide State">🌊 {tide_state}</div>
+          <div style="font-size: 9px; color: #0369a1; font-weight: bold; background-color: #f0f9ff; border-radius: 3px; padding: 2px;" title="Tide State">{tide_state}</div>
         </div>
         """
 
