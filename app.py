@@ -124,7 +124,50 @@ else:
     days_data[day_name][window_name].append((start_time, period))
 
   for day_name, windows in days_data.items():
-    st.markdown(f"### {day_name}")
+    # Calculate summary status for each window
+    window_colors = {}
+    for win_name in ["Morning (6AM-9AM)", "Midday (10AM-1PM)", "Afternoon (2PM-5PM)", "Evening (6PM-9PM)"]:
+      win_periods = windows[win_name]
+      if not win_periods:
+        window_colors[win_name] = None
+        continue
+      
+      has_red = False
+      has_yellow = False
+      for _, period in win_periods:
+        wind_val = float(period["windSpeed"].split()[0])
+        pop = period.get("probabilityOfPrecipitation", {}).get("value") or 0
+        short_fc = period["shortForecast"].lower()
+        detailed_fc = period["detailedForecast"].lower()
+        text_blob = f"{short_fc} {detailed_fc}"
+        has_thunder = "thunder" in text_blob or "storm" in text_blob
+        thunder_pct = 80 if has_thunder and "slight chance" not in short_fc else (30 if has_thunder else 0)
+
+        is_red = wind_val > 13.0 or pop > 25 or thunder_pct > 25
+        is_yellow = not is_red and (wind_val > 8.0 or pop > 15 or thunder_pct > 15)
+
+        if is_red:
+          has_red = True
+        elif is_yellow:
+          has_yellow = True
+
+      if has_red:
+        window_colors[win_name] = "#ff4b4b"
+      elif has_yellow:
+        window_colors[win_name] = "#ffeb3b"
+      else:
+        window_colors[win_name] = "#21c354"
+
+    # Header row with day name and 4 summary color boxes
+    header_html = f'<div style="display: flex; align-items: center; gap: 10px; margin-bottom: 8px;"><h3 style="margin: 0;">{day_name}</h3><div style="display: flex; gap: 4px;">'
+    for win_name in ["Morning (6AM-9AM)", "Midday (10AM-1PM)", "Afternoon (2PM-5PM)", "Evening (6PM-9PM)"]:
+      color = window_colors.get(win_name)
+      if color:
+        header_html += f'<div title="{win_name}" style="width: 14px; height: 14px; background-color: {color}; border: 1px solid rgba(0,0,0,0.2); border-radius: 3px;"></div>'
+      else:
+        header_html += f'<div title="{win_name} (No Data)" style="width: 14px; height: 14px; background-color: #eee; border: 1px solid rgba(0,0,0,0.2); border-radius: 3px;"></div>'
+    header_html += '</div></div>'
+    st.markdown(header_html, unsafe_allow_html=True)
 
     for window_name in ["Morning (6AM-9AM)", "Midday (10AM-1PM)", "Afternoon (2PM-5PM)", "Evening (6PM-9PM)"]:
       window_periods = windows[window_name]
