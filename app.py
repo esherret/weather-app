@@ -79,21 +79,21 @@ def get_icon_level(pct):
       return 1
 
 
-def get_rating_colors(val, is_wind=False):
+def get_rating_bg_color(val, is_wind=False):
   if is_wind:
     if val > 13.0:
-      return "#ff4b4b", "#d93838"  # Red
+      return "#ff4b4b"  # Red
     elif val > 8.0:
-      return "#fffacc", "#997a00"  # Yellow
+      return "#fffacc"  # Yellow
     else:
-      return "#e6f4ea", "#137333"  # Green
+      return "#e6f4ea"  # Green
   else:  # Rain or Thunder percentage
     if val > 25:
-      return "#ff4b4b", "#d93838"  # Red
+      return "#ff4b4b"  # Red
     elif val > 15:
-      return "#fffacc", "#997a00"  # Yellow
+      return "#fffacc"  # Yellow
     else:
-      return "#e6f4ea", "#137333"  # Green
+      return "#e6f4ea"  # Green
 
 
 st.title("🌤️ Weather Windows")
@@ -149,34 +149,34 @@ else:
         has_thunder = "thunder" in text_blob or "storm" in text_blob
         thunder_pct = 80 if has_thunder and "slight chance" not in short_fc else (30 if has_thunder else 0)
 
-        # Overall box border/background based on highest severity
+        # Overall box border based on highest severity
         is_red = wind_val > 13.0 or pop > 25 or thunder_pct > 25
         is_yellow = not is_red and (wind_val > 8.0 or pop > 15 or thunder_pct > 15)
 
         if is_red:
-          box_bg = "#ffdddd"
           box_border = "#ff4b4b"
+          box_bg = "#fff"
         elif is_yellow:
-          box_bg = "#fffacc"
           box_border = "#ccaa00"
+          box_bg = "#fff"
         else:
-          box_bg = "#e6f4ea"
           box_border = "#21c354"
+          box_bg = "#fff"
 
-        # Individual item colors
-        _, wind_txt_color = get_rating_colors(wind_val, is_wind=True)
-        _, rain_txt_color = get_rating_colors(pop, is_wind=False)
-        _, thunder_txt_color = get_rating_colors(thunder_pct, is_wind=False)
+        # Individual item fill backgrounds
+        wind_bg = get_rating_bg_color(wind_val, is_wind=True)
+        rain_bg = get_rating_bg_color(pop, is_wind=False)
+        thunder_bg = get_rating_bg_color(thunder_pct, is_wind=False)
 
         rain_level = get_icon_level(pop)
         thunder_level = get_icon_level(thunder_pct)
 
         grid_html += f"""
-        <div style="flex: 1; min-width: 85px; background-color: {box_bg}; border: 2px solid {box_border}; border-radius: 6px; padding: 6px; text-align: center; font-size: 11px;">
+        <div style="flex: 1; min-width: 85px; background-color: {box_bg}; border: 2px solid {box_border}; border-radius: 6px; padding: 6px; text-align: center; font-size: 11px; color: black;">
           <div style="font-weight: bold; margin-bottom: 4px; border-bottom: 1px solid rgba(0,0,0,0.1);">{time_label}</div>
-          <div style="margin-bottom: 4px; color: {wind_txt_color}; font-weight: bold;" title="Wind: {wind_val} mph {wind_dir}">{arrow} {int(wind_val)}mph<br><span style="font-size: 9px;">{wind_dir}</span></div>
-          <div style="margin-bottom: 2px; color: {rain_txt_color}; font-weight: bold;" title="Chance of Rain: {pop}%">💧{'I'*rain_level} <span style="font-size:9px;">{pop}%</span></div>
-          <div style="color: {thunder_txt_color}; font-weight: bold;" title="Chance of Thunder: {thunder_pct}%">⚡{'I'*thunder_level} <span style="font-size:9px;">{thunder_pct}%</span></div>
+          <div style="margin-bottom: 4px; background-color: {wind_bg}; border-radius: 4px; padding: 2px;" title="Wind: {wind_val} mph {wind_dir}">{arrow} {int(wind_val)}mph<br><span style="font-size: 9px;">{wind_dir}</span></div>
+          <div style="margin-bottom: 2px; background-color: {rain_bg}; border-radius: 4px; padding: 2px;" title="Chance of Rain: {pop}%">💧{'I'*rain_level} <span style="font-size:9px;">{pop}%</span></div>
+          <div style="background-color: {thunder_bg}; border-radius: 4px; padding: 2px; -webkit-text-stroke: 0.3px black;" title="Chance of Thunder: {thunder_pct}%">⚡{'I'*thunder_level} <span style="font-size:9px;">{thunder_pct}%</span></div>
         </div>
         """
 
