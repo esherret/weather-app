@@ -32,6 +32,31 @@ def fetch_forecast():
   return forecast_response.json()["properties"]["periods"]
 
 
+@st.cache_data(ttl=3600)
+def fetch_tides():
+  # Fetches official hourly tide predictions from NOAA Port Canaveral (Trident Pier, ID: 8721604)
+  today_str = datetime.now().strftime("%Y%m%d")
+  url = (
+      f"https://api.tidesandcurrents.noaa.gov/api/prod/datagetter?"
+      f"begin_date={today_str}&range=48&station=8721604&product=predictions"
+      f"&datum=MLLW&units=english&time_zone=lst_ldt&format=json"
+  )
+  try:
+    res = requests.get(url, timeout=5)
+    if res.status_code == 200:
+      data = res.json()
+      predictions = data.get("predictions", [])
+      # Return a dictionary mapped by hour string "YYYY-MM-DD HH:MM"
+      tide_map = {}
+      for p in predictions:
+        # p['t'] format: "2026-07-27 00:00"
+        tide_map[p["t"]] = float(p["v"])
+      return tide_map
+  except Exception:
+    pass
+  return {}
+
+
 def get_wind_svg(direction_str):
   degrees = {
       "N": 180,
@@ -97,15 +122,10 @@ def get_rating_bg_color(val, is_wind=False):
       return "#e6f4ea"
 
 
-def get_tide_wave_glyph(index, total_points):
-  wave_chars = ["","_","▃","▄","▅","▆","▇","█","▇","▆","▅","▄","▃","_"]
-  pos = int((index / max(1, total_points - 1)) * (len(wave_chars) - 1)) % len(wave_chars)
-  return wave_chars[pos]
-
-
 st.title("🌤️ Weather & Tide Windows (Port Canaveral Station ID: 8721604)")
 
 periods = fetch_forecast()
+tides_data = fetch_tides()
 
 if not periods:
   st.error("Failed to retrieve data from the National Weather Service API.")
@@ -181,7 +201,7 @@ else:
     header_html += '</div></div>'
     st.markdown(header_html, unsafe_allow_html=True)
 
-    for window_idx, window_name in enumerate(["Morning (6AM-9AM)", "Midday (10AM-1PM)", "Afternoon (2PM-5PM)", "Evening (6PM-9PM)"]):
+    for window_name in ["Morning (6AM-9AM)", "Midday (10AM-1PM)", "Afternoon (2PM-5PM)", "Evening (6PM-9PM)"]:
       window_periods = windows[window_name]
       if not window_periods:
         continue
@@ -190,8 +210,7 @@ else:
 
       grid_html = '<div style="display: flex; gap: 6px; overflow-x: auto; padding-bottom: 6px;">'
 
-      total_blocks = len(window_periods)
-      for idx, (start_time, period) in enumerate(window_periods):
+      for start_time, period in window_periods:
         time_label = start_time.strftime("%l%p").strip()
         wind_str = period["windSpeed"]
         wind_val = float(wind_str.split()[0])
@@ -226,11 +245,24 @@ else:
         rain_level = get_icon_level(pop)
         thunder_level = get_icon_level(thunder_pct)
         
-        wave_glyph = get_tide_wave_glyph((window_idx * 4) + idx, 16)
+        # Match exact NOAA tide level for this hour key (YYYY-MM-DD HH:00)
+        tide_key = start_time.strftime("%Y-%m-%d %H:00")
+        tide_val = tides_data.get(tide_key)
+        
+        if tide_val is not None:
+          tide_display = f"{tide_val:.1f}ft"
+          # Simple visual wave graph bar based on tide height (assuming range 0ft to 5ft)
+          bar_height = int(min(max(tide_val / 5.0, 0.05), 1.0) * 16)
+          tide_graph = f'<div style="background: #e0f2fe; border-radius: 2px; height: 18px; display: flex; align-items: flex-end; justify-content: center; margin-bottom: 3px;" title="Tide: {tide_val} ft MLLW"><div style="width: 100%; height: {bar_height}px; background-color: #0284c7; border-radius: 1px;"></div></div>'
+        else:
+          tide_display = "N/A"
+          tide_graph = '<div style="font-size: 9px; color: #888; margin-bottom: 3px;">No Tide Data</div>'
 
         grid_html += f"""
         <div style="flex: 1; min-width: 85px; background-color: {box_bg}; border: 2px solid {box_border}; border-radius: 6px; padding: 6px; text-align: center; font-size: 11px; color: black;">
-          <div style="font-weight: bold; margin-bottom: 2px; border-bottom: 1px solid rgba(0,0,0,0.1);">{time_label} <span style="font-size: 10px; color: #0077be;" title="Tide Trend Wave">🌊{wave_glyph}</span></div>
+          <div style="font-weight: bold; margin-bottom: 2px; border-bottom: 1px solid rgba(0,0,0,0.1);">{time_label}</div>
+          {tide_graph}
+          <div style="font-size: 9px; color: #0369a1; font-weight: bold; margin-bottom: 4px;">🌊 {tide_display}</div>
           <div style="margin-bottom: 4px; background-color: {wind_bg}; border-radius: 4px; padding: 2px;" title="Wind: {wind_val} mph {wind_dir}">
             <div>{int(wind_val)}mph</div>
             <div>{pointer_svg}<span style="font-size: 9px;">{wind_dir}</span></div>
