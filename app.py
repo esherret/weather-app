@@ -37,7 +37,7 @@ def fetch_tides():
   today_str = datetime.now().strftime("%Y%m%d")
   url = (
       f"https://api.tidesandcurrents.noaa.gov/api/prod/datagetter?"
-      f"begin_date={today_str}&range=48&station=8721604&product=predictions"
+      f"begin_date={today_str}&range=168&station=8721604&product=predictions"
       f"&datum=MLLW&units=english&time_zone=gmt&format=json"
   )
   try:
@@ -249,7 +249,6 @@ else:
 
         tide_state = "N/A"
         if tide_val is not None:
-          # Get previous and next hour values to determine slope/state
           prev_time = gmt_time.replace(hour=gmt_time.hour - 1) if gmt_time.hour > 0 else gmt_time
           next_time = gmt_time.replace(hour=gmt_time.hour + 1) if gmt_time.hour < 23 else gmt_time
           prev_val = tides_data.get(prev_time.strftime("%Y-%m-%d %H:00"), tide_val)
@@ -263,7 +262,6 @@ else:
           else:
             tide_state = "Falling Tide"
           
-          # Check local peak/trough for High/Low override
           if prev_val <= tide_val >= next_val:
             tide_state = "High Tide"
           elif prev_val >= tide_val <= next_val:
@@ -271,14 +269,14 @@ else:
 
         grid_html += f"""
         <div style="flex: 1; min-width: 85px; background-color: {box_bg}; border: 2px solid {box_border}; border-radius: 6px; padding: 6px; text-align: center; font-size: 11px; color: black;">
-          <div style="font-weight: bold; margin-bottom: 2px; border-bottom: 1px solid rgba(0,0,0,0.1);">{time_label}</div>
-          <div style="font-size: 9px; color: #0369a1; font-weight: bold; margin-bottom: 4px; background-color: #f0f9ff; border-radius: 3px; padding: 2px;" title="Tide State">🌊 {tide_state}</div>
+          <div style="font-weight: bold; margin-bottom: 4px; border-bottom: 1px solid rgba(0,0,0,0.1);">{time_label}</div>
           <div style="margin-bottom: 4px; background-color: {wind_bg}; border-radius: 4px; padding: 2px;" title="Wind: {wind_val} mph {wind_dir}">
             <div>{int(wind_val)}mph</div>
             <div>{pointer_svg}<span style="font-size: 9px;">{wind_dir}</span></div>
           </div>
           <div style="margin-bottom: 2px; background-color: {rain_bg}; border-radius: 4px; padding: 2px;" title="Chance of Rain: {pop}%">💧{'I'*rain_level} <span style="font-size:9px;">{pop}%</span></div>
-          <div style="background-color: {thunder_bg}; border-radius: 4px; padding: 2px;" title="Chance of Thunder: {thunder_pct}%"><span style="text-shadow: 1px 1px 0 #000;">⚡</span>{'I'*thunder_level} <span style="font-size:9px;">{thunder_pct}%</span></div>
+          <div style="margin-bottom: 4px; background-color: {thunder_bg}; border-radius: 4px; padding: 2px;" title="Chance of Thunder: {thunder_pct}%"><span style="text-shadow: 1px 1px 0 #000;">⚡</span>{'I'*thunder_level} <span style="font-size:9px;">{thunder_pct}%</span></div>
+          <div style="font-size: 9px; color: #0369a1; font-weight: bold; background-color: #f0f9ff; border-radius: 3px; padding: 2px;" title="Tide State">🌊 {tide_state}</div>
         </div>
         """
 
