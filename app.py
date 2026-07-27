@@ -257,20 +257,40 @@ else:
       grid_html += '</div>'
       st.html(grid_html)
 
-      # Build individual tide trend wave graph underneath the 4 hour increment boxes
-      tide_graph_html = '<div style="background: #f0f9ff; border: 1px solid #bae6fd; border-radius: 6px; padding: 4px 8px; margin-bottom: 8px; display: flex; align-items: center; justify-content: space-around;" title="Port Canaveral Tide Trend (Port Trident Pier)">'
-      tide_graph_html += '<span style="font-size: 10px; font-weight: bold; color: #0369a1;">🌊 Tide Curve:</span>'
-      
+      # Construct SVG smooth wave curve spanning across the 4 hour increment
+      tide_values = []
       for start_time, _ in window_periods:
         gmt_time = start_time.astimezone(timezone.utc)
         tide_key = gmt_time.strftime("%Y-%m-%d %H:00")
-        tide_val = tides_data.get(tide_key)
-        tide_str = f"{tide_val:.1f}ft" if tide_val is not None else "N/A"
-        hour_label = start_time.strftime("%l%p").strip()
-        
-        tide_graph_html += f'<div style="text-align: center; font-size: 10px; color: #0369a1;"><span style="color: #64748b;">{hour_label}:</span> <b>{tide_str}</b></div>'
+        val = tides_data.get(tide_key, 2.0) # default mid-range fallback if missing
+        tide_values.append(val)
+
+      # Map tide heights to SVG coordinates (box width ~360px, height 26px)
+      svg_width = 360
+      svg_height = 26
+      min_tide = 0.0
+      max_tide = 5.0
       
-      tide_graph_html += '</div>'
-      st.html(tide_graph_html)
+      points = []
+      step_x = svg_width / max(1, len(tide_values) - 1)
+      for idx, val in enumerate(tide_values):
+        x = idx * step_x
+        # Invert y since svg 0 is at top
+        y = svg_height - ((val - min_tide) / (max_tide - min_tide)) * (svg_height - 6) - 3
+        points.append(f"{x},{y}")
+      
+      poly_points = " ".join(points)
+      # Create closed area points for light wave fill under the curve
+      area_points = f"0,{svg_height} " + poly_points + f" {svg_width},{svg_height}"
+
+      tide_svg_html = f"""
+      <div style="background: #f0f9ff; border: 1px solid #bae6fd; border-radius: 6px; padding: 4px 6px; margin-bottom: 8px;">
+        <svg width="100%" height="{svg_height}" viewBox="0 0 {svg_width} {svg_height}" preserveAspectRatio="none" style="display: block;">
+          <polygon points="{area_points}" fill="#e0f2fe" />
+          <polyline points="{poly_points}" fill="none" stroke="#0284c7" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+        </svg>
+      </div>
+      """
+      st.html(tide_svg_html)
 
     st.divider()
