@@ -112,28 +112,20 @@ else:
         detailed_fc = period["detailedForecast"].lower()
         text_blob = f"{short_fc} {detailed_fc}"
 
-        if any(
-            w in text_blob
-            for w in ["likely", "heavy", "showers", "rain", "storms"]
-        ):
-          if "slight chance" not in text_blob and "chance" not in text_blob:
-            worst_precip_status = "BAD"
-          elif worst_precip_status != "BAD":
-            worst_precip_status = "CHECK"
-        elif "chance" in text_blob or "slight chance" in text_blob:
-          if "slight chance" in text_blob and worst_precip_status == "GOOD":
-            worst_precip_status = "CHECK"
-          elif "chance" in text_blob:
-            worst_precip_status = (
-                "BAD" if worst_precip_status == "GOOD" else worst_precip_status
-            )
+        # Get exact NWS probability of precipitation value safely
+        pop_val = (
+            period.get("probabilityOfPrecipitation", {}).get("value") or 0
+        )
+
+        if pop_val >= 50:
+          worst_precip_status = "BAD"
+        elif pop_val > 0 and worst_precip_status != "BAD":
+          worst_precip_status = "CHECK"
 
         if "thunder" in text_blob or "storm" in text_blob:
           if "slight chance" in text_blob:
             if worst_thunder_status == "GOOD":
               worst_thunder_status = "CHECK"
-          elif "chance" in text_blob:
-            worst_thunder_status = "BAD"
           else:
             worst_thunder_status = "BAD"
 
@@ -168,10 +160,9 @@ else:
       with col_b:
         st.markdown(f"{badge}{reason_text}")
 
-      # Rows for Wind Arrows, Wind Direction Text, Rain Bar Graph, Thunder Bar Graph, and AM/PM Time Labels
       html_output = """
             <div style="display: flex; flex-direction: column; gap: 5px; margin-bottom: 8px; background: rgba(0,0,0,0.03); padding: 4px; border-radius: 4px;">
-              <!-- Wind Arrows Row (Doubled size) -->
+              <!-- Wind Arrows Row -->
               <div style="display: flex; gap: 4px; align-items: center;">
             """
       for start_time, period in window_periods:
@@ -203,12 +194,7 @@ else:
             """
       for start_time, period in window_periods:
         pop = period.get("probabilityOfPrecipitation", {}).get("value") or 0
-        short_fc = period["shortForecast"].lower()
-        if pop == 0 and any(
-            w in short_fc for w in ["rain", "shower", "drizzle"]
-        ):
-          pop = 40
-        height_pct = max(pop, 5)
+        height_pct = max(pop, 4) if pop > 0 else 0
         html_output += f"""
                 <div style="flex: 1; display: flex; flex-direction: column; justify-content: flex-end; height: 100%;">
                   <div title="Rain: {pop}%" style="width: 100%; background-color: #21c354; height: {height_pct}%; border-radius: 2px;"></div>
@@ -223,9 +209,13 @@ else:
       for start_time, period in window_periods:
         short_fc = period["shortForecast"].lower()
         detailed_fc = period["detailedForecast"].lower()
-        has_thunder = "thunder" in short_fc or "thunder" in detailed_fc or "storm" in short_fc
+        has_thunder = (
+            "thunder" in short_fc
+            or "thunder" in detailed_fc
+            or "storm" in short_fc
+        )
         thunder_pct = 100 if has_thunder and "slight chance" not in short_fc else (40 if has_thunder else 0)
-        height_pct = max(thunder_pct, 5) if thunder_pct > 0 else 0
+        height_pct = max(thunder_pct, 4) if thunder_pct > 0 else 0
         bg_col = "#ff4b4b" if thunder_pct > 0 else "transparent"
         html_output += f"""
                 <div style="flex: 1; display: flex; flex-direction: column; justify-content: flex-end; height: 100%;">
@@ -239,7 +229,7 @@ else:
               <div style="display: flex; gap: 4px; border-top: 1px solid rgba(0,0,0,0.1); padding-top: 2px;">
             """
       for start_time, period in window_periods:
-        time_label = start_time.strftime("%l%p").strip()  # e.g., 5AM, 12PM
+        time_label = start_time.strftime("%l%p").strip()
         html_output += f"""
                 <div style="flex: 1; text-align: center; font-size: 8px; color: #555; white-space: nowrap;">
                   {time_label}
