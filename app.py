@@ -32,27 +32,27 @@ def fetch_forecast():
   return forecast_response.json()["properties"]["periods"]
 
 
-def get_wind_arrow(direction_str):
-  # Standard meteorological wind direction symbols (pointing where the wind blows TO)
+def get_wind_symbol(direction_str):
+  # Using precise vector arrows / compass pointers
   symbols = {
-      "N": "↓",
-      "NNE": "↙",
-      "NE": "↙",
-      "ENE": "←",
-      "E": "←",
-      "ESE": "↖",
-      "SE": "↖",
-      "SSE": "↑",
-      "S": "↑",
-      "SSW": "↗",
-      "SW": "↗",
-      "WSW": "↗",
-      "W": "→",
-      "WNW": "↘",
-      "NW": "↘",
-      "NNW": "↓",
+      "N": "⬇️",
+      "NNE": "⤲",
+      "NE": "↙️",
+      "ENE": "⬋",
+      "E": "⬅️",
+      "ESE": "⬉",
+      "SE": "↖️",
+      "SSE": "⤱",
+      "S": "⬆️",
+      "SSW": "⤰",
+      "SW": "↗️",
+      "WSW": "⬈",
+      "W": "➡️",
+      "WNW": "⬊",
+      "NW": "↘️",
+      "NNW": "⤳",
   }
-  return symbols.get(direction_str.upper(), "↑")
+  return symbols.get(direction_str.upper(), "⬆️")
 
 
 def get_window_type(hour):
@@ -140,7 +140,7 @@ else:
         wind_str = period["windSpeed"]
         wind_val = float(wind_str.split()[0])
         wind_dir = period.get("windDirection", "N")
-        symbol = get_wind_arrow(wind_dir)
+        symbol = get_wind_symbol(wind_dir)
 
         pop = period.get("probabilityOfPrecipitation", {}).get("value") or 0
         short_fc = period["shortForecast"].lower()
