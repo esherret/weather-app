@@ -459,18 +459,18 @@ else:
             box_border = "#21c354"
           box_bg = "#fff"
 
-          # Determine triggering reason icon(s) for red or yellow boxes matched to standard box text sizing
+          # Determine triggering reason icon(s) with matching border styling for lightning in the time box
           trigger_icons = ""
           if is_red or is_yellow:
             reasons = []
             if wind_val > (13.0 if is_red else 8.0):
-              reasons.append("💨")
+              reasons.append("➿")
             if pop > (25 if is_red else 15):
               reasons.append("💧")
             if thunder_pct > (25 if is_red else 15):
-              reasons.append("⚡")
+              reasons.append('<span style="text-shadow: -1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000, 1px 1px 0 #000; color: #ffeb3b;">⚡</span>')
             if reasons:
-              trigger_icons = f' <span class="box-text" style="margin-left: 4px;" title="Triggered by: {' '.join(reasons)}">{' '.join(reasons)}</span>'
+              trigger_icons = f' <span class="box-text" style="margin-left: 4px;">{" ".join(reasons)}</span>'
 
           wind_bg = get_rating_bg_color(wind_val, is_wind=True)
           rain_bg = get_rating_bg_color(pop, is_wind=False)
@@ -533,7 +533,7 @@ else:
             <div class="box-time" style="margin-bottom: 4px; background-color: {box_border}; color: black; border-radius: 3px; padding: 2px; border-bottom: 1px solid rgba(0,0,0,0.1);">{time_label}{trigger_icons}</div>
             <div style="margin-bottom: 4px; background-color: {wind_bg}; border-radius: 4px; padding: 2px;" title="Wind: {wind_val} mph {wind_dir}">
               <div class="box-text">{int(wind_val)}mph</div>
-              <div class="box-text">{pointer_svg}<span class="wind-dir-space"></span><span>{wind_dir}</span></div>
+              <div class="box-text">➿<span class="wind-dir-space"></span><span>{wind_dir}</span></div>
             </div>
             <div class="box-text" style="margin-bottom: 3px; background-color: {rain_bg}; border-radius: 4px; padding: 2px;" title="Chance of Rain: {pop}%">{rain_icons} <span>{pop}%</span></div>
             <div class="box-text" style="margin-bottom: 4px; background-color: {thunder_bg}; border-radius: 4px; padding: 2px;" title="Chance of Thunder: {thunder_pct}%"><span style="text-shadow: -1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000, 1px 1px 0 #000; color: #ffeb3b;">{thunder_icons}</span> <span>{thunder_pct}%</span></div>
