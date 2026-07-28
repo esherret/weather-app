@@ -2,22 +2,41 @@ from datetime import datetime, timezone, timedelta
 import requests
 import streamlit as st
 
-# Configuration (Coordinates set for Kelly Park, Merritt Island, FL)
-LATITUDE = 28.4021
-LONGITUDE = -80.6629
+st.set_page_config(
+    page_title="Weather Window Monitor", page_icon="🌤️", layout="centered"
+)
+
+# Sidebar configuration for location inputs
+st.sidebar.header("Location Settings")
+user_zip = st.sidebar.text_input("Enter ZIP Code", value="32953")
+
 HEADERS = {
     "User-Agent": "(myweatherapp.com, developer@myweatherapp.com)",
     "Accept": "application/geo+json",
 }
 
-st.set_page_config(
-    page_title="Weather Window Monitor", page_icon="🌤️", layout="centered"
-)
+
+@st.cache_data(ttl=3600)
+def get_lat_lon_from_zip(zip_code):
+  # Using a free geocoding lookup service (Nominatim OpenStreetMap)
+  url = f"https://nominatim.openstreetmap.org/search?postalcode={zip_code}&country=United States&format=json"
+  try:
+    res = requests.get(url, headers={"User-Agent": "WeatherWindowApp/1.0"}, timeout=5)
+    if res.status_code == 200 and res.json():
+      data = res.json()[0]
+      return float(data["lat"]), float(data["lon"]), data.get("display_name", zip_code)
+  except Exception:
+    pass
+  # Fallback default coordinates for Merritt Island if lookup fails
+  return 28.4021, -80.6629, "Merritt Island, FL (Default)"
+
+
+LATITUDE, LONGITUDE, location_name = get_lat_lon_from_zip(user_zip)
 
 
 @st.cache_data(ttl=1800)
-def fetch_forecast():
-  points_url = f"https://api.weather.gov/points/{LATITUDE},{LONGITUDE}"
+def fetch_forecast(lat, lon):
+  points_url = f"https://api.weather.gov/points/{lat},{lon}"
   response = requests.get(points_url, headers=HEADERS)
   if response.status_code != 200:
     return None
@@ -33,11 +52,38 @@ def fetch_forecast():
 
 
 @st.cache_data(ttl=3600)
-def fetch_tides():
+def fetch_nearest_tide_station(lat, lon):
+  # Query NOAA metadata API to find the closest active tide station with predictions
+  url = f"https://api.tidesandcurrents.noaa.gov/mdapi/prod/webapi/stations.json?type=tidepredictions&units=english"
+  try:
+    res = requests.get(url, timeout=5)
+    if res.status_code == 200:
+      stations = res.json().get("stations", [])
+      closest_station = None
+      min_dist = float("inf")
+      for s in stations:
+        try:
+          s_lat = float(s["lat"])
+          s_lon = float(s["lng"])
+          # Simple Euclidean distance approximation for finding nearest station
+          dist = (s_lat - lat) ** 2 + (s_lon - lon) ** 2
+          if dist < min_dist:
+            min_dist = dist
+            closest_station = s["id"]
+        except (KeyError, ValueError):
+          continue
+      return closest_station or "8721604"
+  except Exception:
+    pass
+  return "8721604"
+
+
+@st.cache_data(ttl=3600)
+def fetch_tides(station_id):
   today_str = datetime.now().strftime("%Y%m%d")
   url = (
       f"https://api.tidesandcurrents.noaa.gov/api/prod/datagetter?"
-      f"begin_date={today_str}&range=168&station=8721604&product=predictions"
+      f"begin_date={today_str}&range=168&station={station_id}&product=predictions"
       f"&datum=MLLW&units=english&time_zone=lst_ldt&format=json"
   )
   try:
@@ -144,15 +190,17 @@ def get_rating_bg_color(val, is_wind=False):
       return "#e6f4ea"
 
 
-st.title("Merritt Island Weather")
+st.title("Weather Window Monitor")
+st.caption(f"Current Location Context: {location_name}")
 
 st.markdown(
-    "📊 [View official National Weather Service forecast for this area]"
-    "(https://forecast.weather.gov/MapClick.php?lat=28.4021&lon=-80.6629)"
+    f"📊 [View official National Weather Service forecast for this area]"
+    f"(https://forecast.weather.gov/MapClick.php?lat={LATITUDE}&lon={LONGITUDE})"
 )
 
-periods = fetch_forecast()
-tides_data = fetch_tides()
+station_id = fetch_nearest_tide_station(LATITUDE, LONGITUDE)
+periods = fetch_forecast(LATITUDE, LONGITUDE)
+tides_data = fetch_tides(station_id)
 
 if not periods:
   st.error("Failed to retrieve data from the National Weather Service API.")
