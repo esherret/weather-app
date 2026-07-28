@@ -91,6 +91,7 @@ def fetch_tides(station_id):
 
 
 def get_sun_times(lat, lon, date_str):
+  # sunrise-sunset.org returns UTC time strings when formatted=0
   url = f"https://api.sunrise-sunset.org/json?lat={lat}&lng={lon}&date={date_str}&formatted=0"
   try:
     res = requests.get(url, timeout=3)
@@ -101,10 +102,12 @@ def get_sun_times(lat, lon, date_str):
         rise_utc = datetime.fromisoformat(results["sunrise"])
         set_utc = datetime.fromisoformat(results["sunset"])
         
-        # Approximate local time conversion using timezone offset based on longitude roughly, 
-        # or local system timezone since server matches user region.
-        rise_local = rise_utc.astimezone()
-        set_local = set_utc.astimezone()
+        # Correct timezone offset approximation based on longitude (15 deg per hour, roughly -5h for Eastern US)
+        offset_hours = round(lon / 15.0)
+        local_tz = timezone(timedelta(hours=offset_hours))
+        
+        rise_local = rise_utc.astimezone(local_tz)
+        set_local = set_utc.astimezone(local_tz)
         return rise_local.strftime("%I:%M %p").lstrip("0"), set_local.strftime("%I:%M %p").lstrip("0")
   except Exception:
     pass
