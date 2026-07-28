@@ -294,20 +294,15 @@ def get_rating_bg_color(val, is_wind=False):
       return "#e6f4ea"
 
 
-# Initialize session state for location query.
+# Initialize session state for location query using direct key binding.
 if "location_query" not in st.session_state:
   st.session_state["location_query"] = get_location_from_ip()
 
-# Sidebar configuration
+# Sidebar configuration using session_state key binding directly
 st.sidebar.header("Location Settings")
 with st.sidebar.form(key="location_form"):
-  entered_query = st.text_input("Enter ZIP, Address, or Landmark", value=st.session_state["location_query"])
+  st.text_input("Enter ZIP, Address, or Landmark", key="location_query")
   submit_button = st.form_submit_button(label="Update Location")
-
-# Check if form was submitted to update session state and rerun app
-if submit_button and entered_query != st.session_state["location_query"]:
-    st.session_state["location_query"] = entered_query
-    st.rerun()
 
 LATITUDE, LONGITUDE, location_name = get_lat_lon_from_query(st.session_state["location_query"])
 
