@@ -305,15 +305,15 @@ else:
                   else:
                     tide_state = "Rising"
 
-          # Formatting: High/Low in white circles; Rising/Falling with doubled arrow size and unbolded text
+          # Formatting: High/Low in white circles with text; Rising/Falling with doubled arrow size, double spaces, and unbolded text
           if tide_state == "High":
-            tide_display = '<span style="display: inline-block; width: 22px; height: 22px; line-height: 22px; text-align: center; background-color: white; color: red; font-weight: bold; font-size: 14px; border-radius: 50%; box-shadow: 0 0 2px rgba(0,0,0,0.3);">H</span>'
+            tide_display = '<span style="display: inline-block; width: 22px; height: 22px; line-height: 22px; text-align: center; background-color: white; color: red; font-weight: bold; font-size: 14px; border-radius: 50%; box-shadow: 0 0 2px rgba(0,0,0,0.3);">H</span> High'
           elif tide_state == "Low":
-            tide_display = '<span style="display: inline-block; width: 22px; height: 22px; line-height: 22px; text-align: center; background-color: white; color: green; font-weight: bold; font-size: 14px; border-radius: 50%; box-shadow: 0 0 2px rgba(0,0,0,0.3);">L</span>'
+            tide_display = '<span style="display: inline-block; width: 22px; height: 22px; line-height: 22px; text-align: center; background-color: white; color: green; font-weight: bold; font-size: 14px; border-radius: 50%; box-shadow: 0 0 2px rgba(0,0,0,0.3);">L</span> Low'
           elif tide_state == "Rising":
-            tide_display = '<span style="font-weight: bold; font-size: 18px;">↗</span><span style="font-size: 9px; font-weight: normal;">Rising</span>'
+            tide_display = '<span style="font-weight: bold; font-size: 18px;">↗</span>&nbsp;&nbsp;<span style="font-size: 9px; font-weight: normal;">Rising</span>'
           else:
-            tide_display = '<span style="font-weight: bold; font-size: 18px;">↘</span><span style="font-size: 9px; font-weight: normal;">Falling</span>'
+            tide_display = '<span style="font-weight: bold; font-size: 18px;">↘</span>&nbsp;&nbsp;<span style="font-size: 9px; font-weight: normal;">Falling</span>'
 
           grid_html += f"""
           <div style="flex: 1; min-width: 85px; background-color: {box_bg}; border: 2px solid {box_border}; border-radius: 6px; padding: 6px; text-align: center; font-size: 11px; color: black;">
