@@ -378,12 +378,4 @@ else:
         thunder_pct = 80 if has_thunder and "slight chance" not in short_fc else (30 if has_thunder else 0)
 
         is_red = wind_val > 13.0 or pop > 25 or thunder_pct > 25
-        is_yellow = not is_red and (wind_val > 8.0 or pop > 15 or thunder_pct > 15)
-
-        if is_red:
-          has_red = True
-        elif is_yellow:
-          has_yellow = True
-
-      if has_red:
-        window_colors[win_name] = "#
+        is_yellow = not is_red and (wind_val > 8.0 or pop >
