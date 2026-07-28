@@ -459,16 +459,21 @@ else:
             box_border = "#21c354"
           box_bg = "#fff"
 
-          # Determine triggering reason icon(s) for red or yellow boxes using standard wind icon (💨)
+          # Determine triggering reason icon(s) for red or yellow boxes using explicit condition checks
           trigger_icons = ""
           if is_red or is_yellow:
             reasons = []
-            if wind_val > (13.0 if is_red else 8.0):
+            wind_threshold = 13.0 if is_red else 8.0
+            pop_threshold = 25 if is_red else 15
+            thunder_threshold = 25 if is_red else 15
+
+            if wind_val > wind_threshold:
               reasons.append("💨")
-            if pop > (25 if is_red else 15):
+            if pop > pop_threshold:
               reasons.append("💧")
-            if thunder_pct > (25 if is_red else 15):
+            if thunder_pct > thunder_threshold:
               reasons.append('<span style="text-shadow: -1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000, 1px 1px 0 #000; color: #ffeb3b;">⚡</span>')
+            
             if reasons:
               trigger_icons = f' <span class="box-text" style="margin-left: 4px; vertical-align: middle;">{"".join(reasons)}</span>'
 
