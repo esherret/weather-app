@@ -113,6 +113,20 @@ def get_icon_level(pct):
       return 0
 
 
+def get_cloud_icon(short_fc):
+  text = short_fc.lower()
+  if "sunny" in text or "clear" in text:
+    return "☀️"
+  elif "partly cloudy" in text or "mostly sunny" in text:
+    return "⛅"
+  elif "cloud" in text or "overcast" in text:
+    return "☁️"
+  elif "rain" in text or "shower" in text or "storm" in text:
+    return "🌧️"
+  else:
+    return "☁️"
+
+
 def get_rating_bg_color(val, is_wind=False):
   if is_wind:
     if val > 13.0:
@@ -131,6 +145,11 @@ def get_rating_bg_color(val, is_wind=False):
 
 
 st.title("Merritt Island Weather")
+
+st.markdown(
+    "📊 [View official National Weather Service forecast for this area]"
+    "(https://forecast.weather.gov/MapClick.php?lat=28.4021&lon=-80.6629)"
+)
 
 periods = fetch_forecast()
 tides_data = fetch_tides()
@@ -238,12 +257,16 @@ else:
           pointer_svg = get_wind_svg(wind_dir)
 
           pop = period.get("probabilityOfPrecipitation", {}).get("value") or 0
-          short_fc = period["shortForecast"].lower()
+          short_fc = period["shortForecast"]
           detailed_fc = period["detailedForecast"].lower()
-          text_blob = f"{short_fc} {detailed_fc}"
+          text_blob = f"{short_fc.lower()} {detailed_fc}"
+
+          temp_val = period.get("temperature", "--")
+          temp_unit = period.get("temperatureUnit", "F")
+          cloud_icon = get_cloud_icon(short_fc)
 
           has_thunder = "thunder" in text_blob or "storm" in text_blob
-          thunder_pct = 80 if has_thunder and "slight chance" not in short_fc else (30 if has_thunder else 0)
+          thunder_pct = 80 if has_thunder and "slight chance" not in short_fc.lower() else (30 if has_thunder else 0)
 
           is_red = wind_val > 13.0 or pop > 25 or thunder_pct > 25
           is_yellow = not is_red and (wind_val > 8.0 or pop > 15 or thunder_pct > 15)
@@ -321,7 +344,8 @@ else:
             </div>
             <div style="margin-bottom: 2px; background-color: {rain_bg}; border-radius: 4px; padding: 2px;" title="Chance of Rain: {pop}%">{rain_icons} <span style="font-size:9px;">{pop}%</span></div>
             <div style="margin-bottom: 4px; background-color: {thunder_bg}; border-radius: 4px; padding: 2px;" title="Chance of Thunder: {thunder_pct}%"><span style="text-shadow: -1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000, 1px 1px 0 #000; color: #ffeb3b;">{thunder_icons}</span> <span style="font-size:9px;">{thunder_pct}%</span></div>
-            <div style="font-size: 11px; background-color: #f0f9ff; border-radius: 3px; padding: 3px;" title="Tide">{tide_display}</div>
+            <div style="margin-bottom: 2px; font-size: 11px; background-color: #f0f9ff; border-radius: 3px; padding: 3px;" title="Tide">{tide_display}</div>
+            <div style="font-size: 10px; font-weight: bold; background-color: #f8fafc; border-radius: 3px; padding: 2px;" title="Temperature & Sky">{cloud_icon} {temp_val}°{temp_unit}</div>
           </div>
           """
         else:
