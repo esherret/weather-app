@@ -7,7 +7,7 @@ st.set_page_config(
     page_title="Ed's Weather Yak", page_icon="🌤️", layout="wide"
 )
 
-# Custom CSS for stacking input and button vertically with minimal gap, and widening desktop textbox.
+# Custom CSS for stacking input and button vertically, widening desktop textbox, and restoring sidebar visibility.
 st.markdown("""
 <style>
     .weather-card * {
@@ -19,12 +19,17 @@ st.markdown("""
         margin-top: -1.5rem !important;
     }
 
+    /* Restore Streamlit header and sidebar visibility */
     header[data-testid="stHeader"] {
-        display: none !important;
+        display: block !important;
     }
 
-    /* Reduce vertical gap between stacked elements in the input column */
-    div[data-testid="column"] div.stButton {
+    section[data-testid="stSidebar"] {
+        display: block !important;
+    }
+
+    /* Reduce vertical gap between stacked elements in the input section */
+    div.stButton {
         margin-top: -1.2rem !important;
     }
 
@@ -339,7 +344,7 @@ if "location_query" not in st.session_state:
 if "top_location_input" not in st.session_state:
   st.session_state["top_location_input"] = DEFAULT_ADDRESS
 
-# Sidebar configuration for quick location links
+# Restore Sidebar configuration for quick location links
 st.sidebar.header("Quick Locations")
 for label, query in PRESET_LOCATIONS.items():
   if st.sidebar.button(label, key=f"preset_{label}"):
