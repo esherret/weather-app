@@ -71,10 +71,15 @@ HEADERS = {
     "Accept": "application/geo+json",
 }
 
+DEFAULT_ADDRESS = "Kelly Park West, 2455, Merritt Island, Brevard County, Florida, 32952, United States"
+
 
 @st.cache_data(ttl=3600)
 def get_lat_lon_from_query(query):
   cleaned_query = query.strip()
+  
+  if "Kelly Park West" in cleaned_query or cleaned_query == DEFAULT_ADDRESS:
+    return 28.3751, -80.6865, DEFAULT_ADDRESS
   
   if cleaned_query.isdigit() and len(cleaned_query) == 5:
     url = f"https://nominatim.openstreetmap.org/search?postalcode={cleaned_query}&countrycodes=us&format=json&limit=1"
@@ -284,18 +289,20 @@ def get_rating_bg_color(val, is_wind=False):
       return "#e6f4ea"
 
 
-# Initialize session state with the requested default location
+# Initialize session state for both query and text input value
 if "location_query" not in st.session_state:
-  st.session_state["location_query"] = "Kelly Park West, 2455, Merritt Island, Brevard County, Florida, 32952, United States"
+  st.session_state["location_query"] = DEFAULT_ADDRESS
+
+if "top_location_input" not in st.session_state:
+  st.session_state["top_location_input"] = DEFAULT_ADDRESS
 
 # Top layout split into two columns: Title on the left, and Change Location box on the right
 col_title, col_search = st.columns([2, 1.2])
 
 with col_title:
   st.title("Weather Window Monitor")
-  if st.session_state["location_query"]:
-    _, _, location_name = get_lat_lon_from_query(st.session_state["location_query"])
-    st.caption(f"Current Location Context: {location_name}")
+  _, _, location_name = get_lat_lon_from_query(st.session_state["location_query"])
+  st.caption(f"Current Location Context: {location_name}")
 
 with col_search:
   def handle_top_location_change():
@@ -305,9 +312,8 @@ with col_search:
 
   st.text_input(
       "Change Location:",
-      value="",
-      placeholder="Address, landmark, or zip...",
       key="top_location_input",
+      placeholder="Address, landmark, or zip...",
       on_change=handle_top_location_change
   )
 
