@@ -73,15 +73,15 @@ HEADERS = {
 
 DEFAULT_ADDRESS = "Kelly Park West, 2455, Merritt Island, Brevard County, Florida, 32952, United States"
 
-# Preset locations mapping display labels to exact detailed search queries
+# Preset locations mapping button display labels to exact search queries
 PRESET_LOCATIONS = {
     "Kelly Park West, Merritt Island, FL": DEFAULT_ADDRESS,
     "Port Canaveral, FL": "Port Canaveral, Brevard County, Florida, 32920, United States",
     "Titusville, FL": "Titusville, Brevard County, Florida, United States",
     "Cocoa Beach, FL": "Cocoa Beach, Brevard County, Florida, United States",
     "Vero Beach, FL": "Vero Beach, Indian River County, Florida, United States",
-    "Cape May Harbor": "Cape May Harbor, Lower Township, Cape May County, New Jersey, 18204, United States",
-    "North Cape May, NJ": "Cape May, Cape May-Lewes Ferry Entrance, Lower Township, Cape May County, New Jersey, 08212, United States",
+    "Cape May Harbor": "Cape May Harbor",
+    "Ferry Terminal, Cape May, NJ": "Cape May, Cape May-Lewes Ferry Entrance, Lower Township, Cape May County, New Jersey, 08212, United States",
 }
 
 
