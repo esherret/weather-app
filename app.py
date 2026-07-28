@@ -378,4 +378,4 @@ else:
         thunder_pct = 80 if has_thunder and "slight chance" not in short_fc else (30 if has_thunder else 0)
 
         is_red = wind_val > 13.0 or pop > 25 or thunder_pct > 25
-        is_yellow = not is_red and (wind_val > 8.0 or pop >
+        is_yellow = not is_red and (wind_val > 8.
