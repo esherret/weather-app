@@ -345,7 +345,7 @@ else:
             <div style="margin-bottom: 2px; background-color: {rain_bg}; border-radius: 4px; padding: 2px;" title="Chance of Rain: {pop}%">{rain_icons} <span style="font-size:9px;">{pop}%</span></div>
             <div style="margin-bottom: 4px; background-color: {thunder_bg}; border-radius: 4px; padding: 2px;" title="Chance of Thunder: {thunder_pct}%"><span style="text-shadow: -1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000, 1px 1px 0 #000; color: #ffeb3b;">{thunder_icons}</span> <span style="font-size:9px;">{thunder_pct}%</span></div>
             <div style="margin-bottom: 2px; font-size: 11px; background-color: #f0f9ff; border-radius: 3px; padding: 3px;" title="Tide">{tide_display}</div>
-            <div style="font-size: 10px; font-weight: bold; background-color: #f8fafc; border-radius: 3px; padding: 2px;" title="Temperature & Sky">{cloud_icon} {temp_val}°{temp_unit}</div>
+            <div style="font-size: 10px; font-weight: bold; background-color: #f8fafc; border-radius: 3px; padding: 2px;" title="Temperature & Sky"><span style="font-size: 20px; vertical-align: middle;">{cloud_icon}</span> {temp_val}°{temp_unit}</div>
           </div>
           """
         else:
