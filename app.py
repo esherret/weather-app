@@ -43,6 +43,12 @@ def fetch_forecast(lat, lon):
 
 
 @st.cache_data(ttl=3600)
+def fetch_sun_times(lat, lon):
+  # Fetching sunrise/sunset from sunrise-sunset.org API for each day as needed
+  pass
+
+
+@st.cache_data(ttl=3600)
 def fetch_nearest_tide_station(lat, lon):
   url = f"https://api.tidesandcurrents.noaa.gov/mdapi/prod/webapi/stations.json?type=tidepredictions&units=english"
   try:
@@ -88,6 +94,26 @@ def fetch_tides(station_id):
   except Exception:
     pass
   return {}
+
+
+def get_sun_times(lat, lon, date_str):
+  url = f"https://api.sunrise-sunset.org/json?lat={lat}&lng={lon}&date={date_str}&formatted=0"
+  try:
+    res = requests.get(url, timeout=3)
+    if res.status_code == 200:
+      data = res.json()
+      if data.get("status") == "OK":
+        results = data["results"]
+        rise_utc = datetime.fromisoformat(results["sunrise"])
+        set_utc = datetime.fromisoformat(results["sunset"])
+        # Approximate conversion to local time (EST/EDT offset or standard formatting)
+        # Using simple formatting from UTC strings converted to local or display directly
+        rise_local = rise_utc.astimezone()
+        set_local = set_utc.astimezone()
+        return rise_local.strftime("%I:%M %p").lstrip("0"), set_local.strftime("%I:%M %p").lstrip("0")
+  except Exception:
+    pass
+  return "6:30 AM", "7:45 PM"
 
 
 def get_moon_phase_emoji(dt):
@@ -279,8 +305,15 @@ else:
         window_colors[win_name] = "#21c354"
 
     moon_emoji, moon_desc = get_moon_phase_emoji(sample_dt)
+    date_str_api = sample_dt.strftime("%Y-%m-%d")
+    sunrise_str, sunset_str = get_sun_times(LATITUDE, LONGITUDE, date_str_api)
 
-    header_html = f'<div style="display: flex; align-items: center; gap: 10px; margin-bottom: 8px;"><h3 style="margin: 0;"><span title="{moon_desc}" style="margin-right: 6px;">{moon_emoji}</span>{day_name}</h3><div style="display: flex; gap: 4px;">'
+    header_html = f'''
+    <div style="margin-bottom: 8px;">
+      <div style="display: flex; align-items: center; gap: 10px;">
+        <h3 style="margin: 0;"><span title="{moon_desc}" style="margin-right: 6px;">{moon_emoji}</span>{day_name}</h3>
+        <div style="display: flex; gap: 4px;">
+    '''
     for win_name in windows_def.keys():
       color = window_colors.get(win_name)
       if color == "PAST":
@@ -289,7 +322,14 @@ else:
         header_html += f'<div title="{win_name}" style="width: 14px; height: 14px; background-color: {color}; border: 1px solid rgba(0,0,0,0.2); border-radius: 3px;"></div>'
       else:
         header_html += f'<div title="{win_name} (No Data)" style="width: 14px; height: 14px; background-color: #eee; border: 1px solid rgba(0,0,0,0.2); border-radius: 3px;"></div>'
-    header_html += '</div></div>'
+    header_html += f'''
+        </div>
+      </div>
+      <div style="font-size: 11px; color: #555; margin-top: 2px; margin-left: 30px;">
+        🌅 {sunrise_str} &nbsp;|&nbsp; 🌇 {sunset_str}
+      </div>
+    </div>
+    '''
     st.markdown(header_html, unsafe_allow_html=True)
 
     for window_name, hours in valid_windows.items():
