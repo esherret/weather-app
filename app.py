@@ -132,7 +132,7 @@ def get_rating_bg_color(val, is_wind=False):
       return "#e6f4ea"
 
 
-st.title("🌤️ Weather & Tide Windows (Port Canaveral Station ID: 8721604)")
+st.title("Merritt Island Weather")
 
 periods = fetch_forecast()
 tides_data = fetch_tides()
