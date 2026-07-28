@@ -7,7 +7,7 @@ st.set_page_config(
     page_title="Ed's Weather Yak", page_icon="🌤️", layout="wide"
 )
 
-# Custom CSS to make the text box 60% of screen width and remove header whitespace.
+# Custom CSS to force the location text box to be 20% of the screen width and remove header whitespace.
 st.markdown("""
 <style>
     .weather-card * {
@@ -23,10 +23,10 @@ st.markdown("""
         display: none !important;
     }
 
-    /* Force location text box to be 60% of screen width */
+    /* Force location text box to be 20% of screen width */
     div[data-baseweb="input"] {
-        width: 60vw !important;
-        max-width: 60vw !important;
+        width: 20vw !important;
+        max-width: 20vw !important;
     }
 
     @media (min-width: 768px) {
@@ -76,14 +76,14 @@ st.markdown("""
         
         /* Inline alignment for iPhone */
         [data-testid="column"]:nth-of-type(1) {
-            width: 65% !important;
-            flex: 65% !important;
-            min-width: 65% !important;
+            width: 55% !important;
+            flex: 55% !important;
+            min-width: 55% !important;
         }
         [data-testid="column"]:nth-of-type(2) {
-            width: 35% !important;
-            flex: 35% !important;
-            min-width: 35% !important;
+            width: 45% !important;
+            flex: 45% !important;
+            min-width: 45% !important;
         }
         
         div.stButton > button {
@@ -348,8 +348,8 @@ for label, query in PRESET_LOCATIONS.items():
 # Page title pushed to the very top
 st.markdown("## Ed's Weather Yak")
 
-# 60vw width input box and change button placed strictly on the same line
-col_input, col_btn = st.columns([60, 40])
+# 20vw width input box and change button placed strictly on the same line
+col_input, col_btn = st.columns([20, 80])
 
 with col_input:
   def handle_top_location_change():
@@ -526,7 +526,7 @@ else:
               box_border = "#21c354"
             box_bg = "#fff"
 
-            # Icons in the time box are commented out below for easy restoration later:
+            # Icons in the time box are commented out for easy restoration later:
             trigger_icons = ""
             # reasons = []
             # if wind_val > 8.0:
