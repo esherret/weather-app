@@ -7,15 +7,21 @@ st.set_page_config(
     page_title="Ed's Weather Yak", page_icon="🌤️", layout="wide"
 )
 
-# Custom CSS for spacing, top margin, responsive input widths, and inline alignment.
+# Custom CSS to remove whitespace, pull title to the top, and force the input + button onto a single line on iPhone
 st.markdown("""
 <style>
     .weather-card * {
         font-weight: bold !important;
     }
 
+    /* Remove Streamlit default top padding and header whitespace */
     .main .block-container {
-        padding-top: 0.5rem !important;
+        padding-top: 0rem !important;
+        margin-top: -1.5rem !important;
+    }
+
+    header[data-testid="stHeader"] {
+        display: none !important;
     }
 
     @media (min-width: 768px) {
@@ -63,14 +69,24 @@ st.markdown("""
             width: auto;
         }
         
-        /* Force text input and button columns to share the row and keep the input short */
+        /* Force single-line layout on iPhone */
         [data-testid="column"]:nth-of-type(1) {
-            width: 68% !important;
-            flex: 68% !important;
+            width: 65% !important;
+            flex: 65% !important;
+            min-width: 65% !important;
         }
         [data-testid="column"]:nth-of-type(2) {
-            width: 32% !important;
-            flex: 32% !important;
+            width: 35% !important;
+            flex: 35% !important;
+            min-width: 35% !important;
+        }
+        
+        /* Adjust button and input vertical alignment */
+        div.stButton > button {
+            width: 100% !important;
+            padding: 0.35rem 0.5rem !important;
+            font-size: 0.85rem !important;
+            margin-top: 1.7rem !important;
         }
     }
 </style>
@@ -325,10 +341,11 @@ for label, query in PRESET_LOCATIONS.items():
     st.session_state["top_location_input"] = query
     st.rerun()
 
-# Page title and location input stacked vertically with button right beside input
-st.title("Ed's Weather Yak")
+# Page title pushed to the very top
+st.markdown("## Ed's Weather Yak")
 
-col_input, col_btn = st.columns([2.6, 1])
+# Narrower input box and change button placed strictly on the same line
+col_input, col_btn = st.columns([2.2, 1])
 
 with col_input:
   def handle_top_location_change():
