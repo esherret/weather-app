@@ -139,7 +139,6 @@ else:
     day_hours = forecast_map[day_name]
     sample_dt = list(day_hours.values())[0][0] if day_hours else datetime.now(timezone.utc)
 
-    # Check which windows have at least one hour of data available
     valid_windows = {}
     for win_name, hours in windows_def.items():
       if any(h in day_hours for h in hours):
@@ -254,10 +253,19 @@ else:
           </div>
           """
         else:
+          # Determine if dummy_dt is in the past or future relative to current UTC time
+          current_utc = datetime.now(timezone.utc)
+          dummy_utc = dummy_dt.astimezone(timezone.utc)
+          
+          if dummy_utc < current_utc:
+            msg = "Data no longer available"
+          else:
+            msg = "Data not yet available"
+
           grid_html += f"""
           <div style="flex: 1; min-width: 85px; background-color: #f8f9fa; border: 2px solid #d1d5db; border-radius: 6px; padding: 6px; text-align: center; font-size: 11px; color: #9ca3af;">
             <div style="font-weight: bold; margin-bottom: 4px; border-bottom: 1px solid rgba(0,0,0,0.1);">{time_label}</div>
-            <div style="margin-top: 20px; font-size: 10px; font-style: italic;">No Data</div>
+            <div style="margin-top: 15px; font-size: 9px; font-style: italic; line-height: 1.2;">{msg}</div>
           </div>
           """
 
