@@ -6,10 +6,6 @@ st.set_page_config(
     page_title="Weather Window Monitor", page_icon="🌤️", layout="centered"
 )
 
-# Sidebar configuration for location inputs
-st.sidebar.header("Location Settings")
-user_zip = st.sidebar.text_input("Enter ZIP Code", value="32953")
-
 HEADERS = {
     "User-Agent": "(myweatherapp.com, developer@myweatherapp.com)",
     "Accept": "application/geo+json",
@@ -18,7 +14,6 @@ HEADERS = {
 
 @st.cache_data(ttl=3600)
 def get_lat_lon_from_zip(zip_code):
-  # Using a free geocoding lookup service (Nominatim OpenStreetMap)
   url = f"https://nominatim.openstreetmap.org/search?postalcode={zip_code}&country=United States&format=json"
   try:
     res = requests.get(url, headers={"User-Agent": "WeatherWindowApp/1.0"}, timeout=5)
@@ -27,11 +22,7 @@ def get_lat_lon_from_zip(zip_code):
       return float(data["lat"]), float(data["lon"]), data.get("display_name", zip_code)
   except Exception:
     pass
-  # Fallback default coordinates for Merritt Island if lookup fails
   return 28.4021, -80.6629, "Merritt Island, FL (Default)"
-
-
-LATITUDE, LONGITUDE, location_name = get_lat_lon_from_zip(user_zip)
 
 
 @st.cache_data(ttl=1800)
@@ -53,7 +44,6 @@ def fetch_forecast(lat, lon):
 
 @st.cache_data(ttl=3600)
 def fetch_nearest_tide_station(lat, lon):
-  # Query NOAA metadata API to find the closest active tide station with predictions
   url = f"https://api.tidesandcurrents.noaa.gov/mdapi/prod/webapi/stations.json?type=tidepredictions&units=english"
   try:
     res = requests.get(url, timeout=5)
@@ -65,7 +55,6 @@ def fetch_nearest_tide_station(lat, lon):
         try:
           s_lat = float(s["lat"])
           s_lon = float(s["lng"])
-          # Simple Euclidean distance approximation for finding nearest station
           dist = (s_lat - lat) ** 2 + (s_lon - lon) ** 2
           if dist < min_dist:
             min_dist = dist
@@ -190,7 +179,22 @@ def get_rating_bg_color(val, is_wind=False):
       return "#e6f4ea"
 
 
-st.title("Weather Window Monitor")
+# Initialize session state for zip code
+if "zip_code" not in st.session_state:
+  st.session_state["zip_code"] = "32953"
+
+# Sidebar configuration using a form for submit-to-close behavior
+st.sidebar.header("Location Settings")
+with st.sidebar.form(key="zip_form"):
+  entered_zip = st.text_input("Enter ZIP Code", value=st.session_state["zip_code"])
+  submit_button = st.form_submit_button(label="Update Location")
+
+  if submit_button:
+    st.session_state["zip_code"] = entered_zip
+
+LATITUDE, LONGITUDE, location_name = get_lat_lon_from_zip(st.session_state["zip_code"])
+
+st.title("Merritt Island Weather")
 st.caption(f"Current Location Context: {location_name}")
 
 st.markdown(
