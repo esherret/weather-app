@@ -7,7 +7,7 @@ st.set_page_config(
     page_title="Ed's Weather Yak", page_icon="🌤️", layout="wide"
 )
 
-# Custom CSS to force side-by-side columns and 20% width on mobile/iPhone, and remove header whitespace.
+# Custom CSS for responsive textbox widths (narrower on iPhone, wider on desktop/tablet) and inline column locking.
 st.markdown("""
 <style>
     .weather-card * {
@@ -23,13 +23,7 @@ st.markdown("""
         display: none !important;
     }
 
-    /* Force location text box to be 20% of the screen width */
-    div[data-baseweb="input"] {
-        width: 20vw !important;
-        max-width: 20vw !important;
-    }
-
-    /* Force Streamlit columns to stay side-by-side on iPhone / mobile */
+    /* Force Streamlit columns to stay side-by-side on mobile/iPhone */
     @media (max-width: 767px) {
         [data-testid="stHorizontalBlock"] {
             display: flex !important;
@@ -40,6 +34,33 @@ st.markdown("""
             width: auto !important;
             flex: 1 1 auto !important;
             min-width: 0 !important;
+        }
+        
+        /* Text box ~20% narrower on iPhone (~16vw) */
+        div[data-baseweb="input"] {
+            width: 16vw !important;
+            max-width: 16vw !important;
+        }
+        
+        div.stButton > button {
+            width: 100% !important;
+            padding: 0.35rem 0.5rem !important;
+            font-size: 0.85rem !important;
+        }
+
+        .box-time {
+            font-size: 0.95rem !important;
+        }
+        .box-text {
+            font-size: 0.65rem !important;
+        }
+        .weather-card {
+            min-width: 0 !important;
+            padding: 4px !important;
+        }
+        .wind-dir-space {
+            display: inline;
+            width: auto;
         }
     }
 
@@ -70,28 +91,11 @@ st.markdown("""
             display: inline-block;
             width: 14px;
         }
-    }
 
-    @media (max-width: 767px) {
-        .box-time {
-            font-size: 0.95rem !important;
-        }
-        .box-text {
-            font-size: 0.65rem !important;
-        }
-        .weather-card {
-            min-width: 0 !important;
-            padding: 4px !important;
-        }
-        .wind-dir-space {
-            display: inline;
-            width: auto;
-        }
-        
-        div.stButton > button {
-            width: 100% !important;
-            padding: 0.35rem 0.5rem !important;
-            font-size: 0.85rem !important;
+        /* Text box twice as wide on computer/tablet (~40vw) */
+        div[data-baseweb="input"] {
+            width: 40vw !important;
+            max-width: 40vw !important;
         }
     }
 </style>
@@ -349,7 +353,7 @@ for label, query in PRESET_LOCATIONS.items():
 # Page title pushed to the very top
 st.markdown("## Ed's Weather Yak")
 
-# 20vw width input box and "Go" button placed strictly on the same line
+# Responsive column proportions and input layout
 col_input, col_btn = st.columns([20, 80])
 
 with col_input:
