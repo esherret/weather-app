@@ -7,14 +7,13 @@ st.set_page_config(
     page_title="Ed's Weather Yak", page_icon="🌤️", layout="wide"
 )
 
-# Custom CSS to remove whitespace, pull title to the top, and force the input + button onto a single line on iPhone
+# Custom CSS to force 200px input width, lock time box header height, and remove header whitespace.
 st.markdown("""
 <style>
     .weather-card * {
         font-weight: bold !important;
     }
 
-    /* Remove Streamlit default top padding and header whitespace */
     .main .block-container {
         padding-top: 0rem !important;
         margin-top: -1.5rem !important;
@@ -22,6 +21,24 @@ st.markdown("""
 
     header[data-testid="stHeader"] {
         display: none !important;
+    }
+
+    /* Force location text box to be 200px wide */
+    div[data-baseweb="input"] {
+        width: 200px !important;
+    }
+
+    /* Fixed height for time header box so rows always line up uniformly */
+    .box-time-header {
+        height: 48px;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+        margin-bottom: 4px;
+        border-radius: 3px;
+        padding: 2px;
+        border-bottom: 1px solid rgba(0,0,0,0.1);
     }
 
     @media (min-width: 768px) {
@@ -69,7 +86,7 @@ st.markdown("""
             width: auto;
         }
         
-        /* Force single-line layout on iPhone */
+        /* Inline alignment for iPhone */
         [data-testid="column"]:nth-of-type(1) {
             width: 65% !important;
             flex: 65% !important;
@@ -81,7 +98,6 @@ st.markdown("""
             min-width: 35% !important;
         }
         
-        /* Adjust button and input vertical alignment */
         div.stButton > button {
             width: 100% !important;
             padding: 0.35rem 0.5rem !important;
@@ -344,8 +360,8 @@ for label, query in PRESET_LOCATIONS.items():
 # Page title pushed to the very top
 st.markdown("## Ed's Weather Yak")
 
-# Narrower input box and change button placed strictly on the same line
-col_input, col_btn = st.columns([2.2, 1])
+# Narrower input box (200px wide) and change button placed strictly on the same line
+col_input, col_btn = st.columns([200, 80])
 
 with col_input:
   def handle_top_location_change():
@@ -532,8 +548,8 @@ else:
             if thunder_pct > 15:
               reasons.append('<span style="text-shadow: -1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000, 1px 1px 0 #000; color: #ffeb3b;">⚡</span>')
             
-            if reasons:
-              trigger_icons = f'<br><span class="box-text" style="vertical-align: middle;">{"".join(reasons)}</span>'
+            # Always render a container span to guarantee fixed vertical height (2 lines high)
+            trigger_icons = f'<br><span class="box-text" style="vertical-align: middle; display: inline-block; min-height: 1.2em;">{"".join(reasons)}</span>'
 
             wind_bg = get_rating_bg_color(wind_val, is_wind=True)
             rain_bg = get_rating_bg_color(pop, is_wind=False)
@@ -592,7 +608,7 @@ else:
 
             grid_html += f"""
             <div class="weather-card" style="flex: 1; min-width: 0; background-color: {box_bg}; border: 2px solid {box_border}; border-radius: 6px; padding: 4px; text-align: center; color: black;">
-              <div class="box-time" style="margin-bottom: 4px; background-color: {box_border}; color: black; border-radius: 3px; padding: 2px; border-bottom: 1px solid rgba(0,0,0,0.1);">{time_label}{trigger_icons}</div>
+              <div class="box-time-header" style="background-color: {box_border}; color: black;"><span class="box-time">{time_label}</span>{trigger_icons}</div>
               <div style="margin-bottom: 4px; background-color: {wind_bg}; border-radius: 4px; padding: 2px;" title="Wind: {wind_val} mph {wind_dir}">
                 <div class="box-text">{int(wind_val)}mph</div>
                 <div class="box-text">{pointer_svg}<span class="wind-dir-space"></span><span>{wind_dir}</span></div>
@@ -614,7 +630,7 @@ else:
 
             grid_html += f"""
             <div class="weather-card" style="flex: 1; min-width: 0; background-color: #f8f9fa; border: 2px solid #d1d5db; border-radius: 6px; padding: 4px; text-align: center; color: #9ca3af;">
-              <div class="box-time" style="margin-bottom: 4px; background-color: #d1d5db; color: #374151; border-radius: 3px; padding: 2px; border-bottom: 1px solid rgba(0,0,0,0.1);">{time_label}</div>
+              <div class="box-time-header" style="background-color: #d1d5db; color: #374151;"><span class="box-time">{time_label}</span></div>
               <div style="margin-top: 15px; font-size: 9px; font-style: italic; line-height: 1.2;">{msg}</div>
             </div>
             """
