@@ -7,7 +7,7 @@ st.set_page_config(
     page_title="Ed's Weather Yak", page_icon="🌤️", layout="wide"
 )
 
-# Custom CSS to force 50px input width and remove header whitespace.
+# Custom CSS to make the text box 60% of screen width and remove header whitespace.
 st.markdown("""
 <style>
     .weather-card * {
@@ -23,9 +23,10 @@ st.markdown("""
         display: none !important;
     }
 
-    /* Force location text box to be 50px wide */
+    /* Force location text box to be 60% of screen width */
     div[data-baseweb="input"] {
-        width: 50px !important;
+        width: 60vw !important;
+        max-width: 60vw !important;
     }
 
     @media (min-width: 768px) {
@@ -75,14 +76,14 @@ st.markdown("""
         
         /* Inline alignment for iPhone */
         [data-testid="column"]:nth-of-type(1) {
-            width: 45% !important;
-            flex: 45% !important;
-            min-width: 45% !important;
+            width: 65% !important;
+            flex: 65% !important;
+            min-width: 65% !important;
         }
         [data-testid="column"]:nth-of-type(2) {
-            width: 55% !important;
-            flex: 55% !important;
-            min-width: 55% !important;
+            width: 35% !important;
+            flex: 35% !important;
+            min-width: 35% !important;
         }
         
         div.stButton > button {
@@ -347,8 +348,8 @@ for label, query in PRESET_LOCATIONS.items():
 # Page title pushed to the very top
 st.markdown("## Ed's Weather Yak")
 
-# 50px input box and change button placed strictly on the same line
-col_input, col_btn = st.columns([50, 80])
+# 60vw width input box and change button placed strictly on the same line
+col_input, col_btn = st.columns([60, 40])
 
 with col_input:
   def handle_top_location_change():
@@ -525,18 +526,17 @@ else:
               box_border = "#21c354"
             box_bg = "#fff"
 
+            # Icons in the time box are commented out below for easy restoration later:
             trigger_icons = ""
-            reasons = []
-            
-            if wind_val > 8.0:
-              reasons.append('<span style="text-shadow: -1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000, 1px 1px 0 #000; color: #ffffff;">🚩</span>')
-            if pop > 15:
-              reasons.append("💧")
-            if thunder_pct > 15:
-              reasons.append('<span style="text-shadow: -1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000, 1px 1px 0 #000; color: #ffeb3b;">⚡</span>')
-            
-            if reasons:
-              trigger_icons = f'<br><span class="box-text" style="vertical-align: middle;">{"".join(reasons)}</span>'
+            # reasons = []
+            # if wind_val > 8.0:
+            #   reasons.append('<span style="text-shadow: -1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000, 1px 1px 0 #000; color: #ffffff;">🚩</span>')
+            # if pop > 15:
+            #   reasons.append("💧")
+            # if thunder_pct > 15:
+            #   reasons.append('<span style="text-shadow: -1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000, 1px 1px 0 #000; color: #ffeb3b;">⚡</span>')
+            # if reasons:
+            #   trigger_icons = f'<br><span class="box-text" style="vertical-align: middle;">{"".join(reasons)}</span>'
 
             wind_bg = get_rating_bg_color(wind_val, is_wind=True)
             rain_bg = get_rating_bg_color(pop, is_wind=False)
