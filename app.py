@@ -321,7 +321,7 @@ periods = fetch_forecast(LATITUDE, LONGITUDE)
 tides_data = fetch_tides(station_id)
 
 if not periods:
-  st.error("Failed to retrieve data from the National Weather Service API.")
+  st.error("Failed to retrieve data from the National Weather Service NWS API.")
 else:
   forecast_map = {}
   for period in periods:
@@ -459,12 +459,12 @@ else:
             box_border = "#21c354"
           box_bg = "#fff"
 
-          # Determine triggering reason icon(s) with matching border styling for lightning in the time box
+          # Determine triggering reason icon(s) for red or yellow boxes using the requested wind lines icon (🌬️)
           trigger_icons = ""
           if is_red or is_yellow:
             reasons = []
             if wind_val > (13.0 if is_red else 8.0):
-              reasons.append("⬆️")
+              reasons.append("🌬️")
             if pop > (25 if is_red else 15):
               reasons.append("💧")
             if thunder_pct > (25 if is_red else 15):
