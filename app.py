@@ -459,23 +459,24 @@ else:
             box_border = "#21c354"
           box_bg = "#fff"
 
-          # Determine triggering reason icon(s) for red or yellow boxes using explicit condition checks
+          # Determine triggering reason icon(s) if an item is either red OR yellow
           trigger_icons = ""
-          if is_red or is_yellow:
-            reasons = []
-            wind_threshold = 13.0 if is_red else 8.0
-            pop_threshold = 25 if is_red else 15
-            thunder_threshold = 25 if is_red else 15
-
-            if wind_val > wind_threshold:
-              reasons.append("💨")
-            if pop > pop_threshold:
-              reasons.append("💧")
-            if thunder_pct > thunder_threshold:
-              reasons.append('<span style="text-shadow: -1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000, 1px 1px 0 #000; color: #ffeb3b;">⚡</span>')
-            
-            if reasons:
-              trigger_icons = f' <span class="box-text" style="margin-left: 4px; vertical-align: middle;">{"".join(reasons)}</span>'
+          reasons = []
+          
+          # Check wind (yellow if > 8.0, red if > 13.0)
+          if wind_val > 8.0:
+            reasons.append("💨")
+          
+          # Check rain / POP (yellow if > 15, red if > 25)
+          if pop > 15:
+            reasons.append("💧")
+          
+          # Check thunder (yellow if > 15, red if > 25)
+          if thunder_pct > 15:
+            reasons.append('<span style="text-shadow: -1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000, 1px 1px 0 #000; color: #ffeb3b;">⚡</span>')
+          
+          if reasons:
+            trigger_icons = f' <span class="box-text" style="margin-left: 4px; vertical-align: middle;">{"".join(reasons)}</span>'
 
           wind_bg = get_rating_bg_color(wind_val, is_wind=True)
           rain_bg = get_rating_bg_color(pop, is_wind=False)
