@@ -304,7 +304,7 @@ with st.sidebar.form(key="location_form"):
   submit_button = st.form_submit_button(label="Update Location")
 
 if submit_button:
-  if entered_query and entered_query != st.session_state["location_query"]:
+  if entered_query:
     st.session_state["location_query"] = entered_query
     st.rerun()
 
