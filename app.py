@@ -79,18 +79,6 @@ def get_wind_svg(direction_str):
   return f'<span style="display: inline-block; transform: rotate({deg}deg); width: 14px; height: 14px; line-height: 14px; text-align: center; vertical-align: middle; margin-right: 4px;">⬆️</span>'
 
 
-def get_window_type(hour):
-  if 6 <= hour <= 9:
-    return "Morning (6AM-9AM)"
-  elif 10 <= hour <= 13:
-    return "Midday (10AM-1PM)"
-  elif 14 <= hour <= 17:
-    return "Afternoon (2PM-5PM)"
-  elif 18 <= hour <= 21:
-    return "Evening (6PM-9PM)"
-  return None
-
-
 def get_icon_level(pct):
   if pct >= 75:
       return 5
@@ -151,6 +139,15 @@ else:
     day_hours = forecast_map[day_name]
     sample_dt = list(day_hours.values())[0][0] if day_hours else datetime.now(timezone.utc)
 
+    # Check which windows have at least one hour of data available
+    valid_windows = {}
+    for win_name, hours in windows_def.items():
+      if any(h in day_hours for h in hours):
+        valid_windows[win_name] = hours
+
+    if not valid_windows:
+      continue
+
     window_colors = {}
     for win_name, hours in windows_def.items():
       win_periods = [day_hours[h] for h in hours if h in day_hours]
@@ -203,7 +200,7 @@ else:
     header_html += '</div></div>'
     st.markdown(header_html, unsafe_allow_html=True)
 
-    for window_name, hours in windows_def.items():
+    for window_name, hours in valid_windows.items():
       st.markdown(f"**{window_name}**")
 
       grid_html = '<div style="display: flex; gap: 6px; overflow-x: auto; padding-bottom: 6px;">'
