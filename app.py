@@ -76,7 +76,7 @@ def get_lat_lon_from_query(query):
   cleaned_query = query.strip()
   
   if cleaned_query.isdigit() and len(cleaned_query) == 5:
-    url = f"https://nominatim.openstreetmap.org/search?postalcode={cleaned_query}&country=United States&format=json&limit=1"
+    url = f"https://nominatim.openstreetmap.org/search?postalcode={cleaned_query}&countrycodes=us&format=json&limit=1"
     try:
       res = requests.get(url, headers={"User-Agent": "WeatherWindowApp/1.0"}, timeout=5)
       if res.status_code == 200 and res.json():
@@ -85,7 +85,8 @@ def get_lat_lon_from_query(query):
     except Exception:
       pass
 
-  url = f"https://nominatim.openstreetmap.org/search?q={requests.utils.quote(cleaned_query)}&country=United States&format=json&limit=1"
+  # US-restricted free-form search handling cities, states, and landmarks accurately
+  url = f"https://nominatim.openstreetmap.org/search?q={requests.utils.quote(cleaned_query)}&countrycodes=us&format=json&limit=1"
   try:
     res = requests.get(url, headers={"User-Agent": "WeatherWindowApp/1.0"}, timeout=5)
     if res.status_code == 200 and res.json():
@@ -314,12 +315,12 @@ with col_search:
 
 # Only render data if a location has been entered
 if not st.session_state["location_query"]:
-  st.info("👈 Enter an address, landmark, or zip code in the 'Change Location' box above to load weather and tide information.")
+  st.info("👈 Enter a US address, landmark, city/state, or zip code in the 'Change Location' box above to load weather and tide information.")
 else:
   LATITUDE, LONGITUDE, location_name = get_lat_lon_from_query(st.session_state["location_query"])
   
   if LATITUDE is None or LONGITUDE is None:
-    st.error("Could not find coordinates for that location. Please try a different query (e.g., adding country or state explicitly).")
+    st.error("Could not find coordinates for that location. Please try adding the state explicitly (e.g., 'Fort Lauderdale, FL').")
   else:
     display_title_location = location_name.split(",")[0] if location_name else "Weather"
 
@@ -577,7 +578,7 @@ else:
             <span style="display: inline-block; width: 10px; height: 10px; background-color: #e6f4ea; border: 1px solid #21c354; border-radius: 2px;"></span>
             <span>≤8</span>
           </div>
-          <div style="display: flex. align-items: center; gap: 3px;">
+          <div style="display: flex; align-items: center; gap: 3px;">
             <span style="display: inline-block; width: 10px; height: 10px; background-color: #fffacc; border: 1px solid #ffeb3b; border-radius: 2px;"></span>
             <span>8.1–13</span>
           </div>
