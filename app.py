@@ -47,7 +47,9 @@ def fetch_tides():
       predictions = data.get("predictions", [])
       tide_map = {}
       for p in predictions:
-        tide_map[p["t"]] = float(p["v"])
+        # p['t'] format: "YYYY-MM-DD HH:MM"
+        dt_obj = datetime.strptime(p["t"], "%Y-%m-%d %H:%M")
+        tide_map[dt_obj] = float(p["v"])
       return tide_map
   except Exception:
     pass
@@ -270,116 +272,55 @@ else:
         rain_level = get_icon_level(pop)
         thunder_level = get_icon_level(thunder_pct)
 
-        local_dt = start_time.astimezone()
-        tide_key = local_dt.strftime("%Y-%m-%d %H:00")
-        tide_val = tides_data.get(tide_key)
-
+        local_dt = start_time.astimezone() # Local datetime for this forecast box hour
+        
         tide_state = "N/A"
-        if tide_val is not None:
-          # Scan minute-by-minute across this specific hour block (from minute 0 to 59)
-          # using quadratic/cubic interpolation of adjacent hourly predictions to find exact local extrema
-          best_minute_dt = None
-          best_extreme_val = tide_val
-          is_high_extreme = False
-          is_low_extreme = False
+        if tides_data:
+          # Find all actual high/low peaks/troughs across the full day or neighboring hours
+          # We check a window from 30 minutes before this hour to 30 minutes after this hour
+          hour_start_dt = local_dt.replace(minute=0, second=0, microsecond=0)
+          hour_end_dt = hour_start_dt + timedelta(hours=1)
 
-          # Check points every 5 minutes within this exact hour
-          hour_start = local_dt.replace(minute=0, second=0, microsecond=0)
+          matched_extreme = None
           
-          # Gather surrounding hourly anchors to test interpolation
-          h_prev = tides_data.get((hour_start - timedelta(hours=1)).strftime("%Y-%m-%d %H:00"), tide_val)
-          h_curr = tides_data.get(hour_start.strftime("%Y-%m-%d %H:00"), tide_val)
-          h_next = tides_data.get((hour_start + timedelta(hours=1)).strftime("%Y-%m-%d %H:00"), tide_val)
-          h_next2 = tides_data.get((hour_start + timedelta(hours=2)).strftime("%Y-%m-%d %H:00"), tide_val)
+          # Scan NOAA predictions dictionary for any local peak or trough falling strictly inside [hour_start_dt, hour_end_dt)
+          # A local peak/trough is where value is greater than or less than both adjacent entries (e.g., +/- 1 hour)
+          sorted_tide_keys = sorted(tides_data.keys())
+          
+          extreme_found = None
+          for dt_key in sorted_tide_keys:
+            if hour_start_dt <= dt_key < hour_end_dt:
+              # Check if it's a local max or min by inspecting neighbors
+              val = tides_data[dt_key]
+              prev_dt = dt_key - timedelta(hours=1)
+              next_dt = dt_key + timedelta(hours=1)
+              if prev_dt in tides_data and next_dt in tides_data:
+                p_val = tides_data[prev_dt]
+                n_val = tides_data[next_dt]
+                if val >= p_val and val >= n_val:
+                  extreme_found = ("High", dt_key)
+                  break
+                elif val <= p_val and val <= n_val:
+                  extreme_found = ("Low", dt_key)
+                  break
 
-          # Check if an extreme falls within this hour (minute 0 to 59)
-          # We evaluate a smooth curve across this hour block
-          found_peak_minute = None
-          found_trough_minute = None
-          max_v_in_hour = -999
-          min_v_in_hour = 999
-
-          # High-resolution minute scan using smooth cosine interpolation between hourly data points
-          import math
-          for m in range(0, 60):
-            # fraction through the hour
-            t = m / 60.0
-            # Interpolate between h_curr and h_next smoothly
-            # Cosine interpolation formula
-            ft = t * math.pi
-            f = (1 - math.cos(ft)) * 0.5
-            interpolated_val = h_curr * (1 - f) + h_next * f
-            
-            if interpolated_val > max_v_in_hour:
-              max_v_in_hour = interpolated_val
-              peak_m = m
-
-            if interpolated_val < min_v_in_hour:
-              min_v_in_hour = interpolated_val
-              trough_m = m
-
-          # Verify if this hour actually contains a true turning point by checking slopes into and out of the hour
-          entering_slope = h_curr - h_prev
-          leaving_slope = h_next - h_curr
-
-          # If slope changes sign from positive to negative inside or right at the boundary, it's a High
-          if h_curr >= h_prev and h_curr >= h_next:
-            # Peak is right at the start of the hour or within
-            best_dt = hour_start
-            tide_state = f"High {best_dt.strftime('%H:%M')}"
-          elif h_next >= h_curr and h_next >= h_next2 and entering_slope > 0 and (h_next - h_next2) > 0:
-            # Peak occurs inside this hour towards the end
-            # Find exact minute where derivative is zero between curr and next
-            found_m = 30
-            for m in range(0, 60):
-              # check local peak
-              pass
-            # Let's use standard NOAA 6-minute interval lookup if available or precise peak finding:
-            # NOAA predictions can also be queried or we can pinpoint using quadratic vertex on (prev, curr, next)
-            pass
-
-          # Direct local peak detection from NOAA hourly array surrounding this hour
-          surrounding = []
-          surrounding_dts = []
-          for off in range(-2, 3):
-            d = hour_start + timedelta(hours=off)
-            surrounding.append(tides_data.get(d.strftime("%Y-%m-%d %H:00"), h_curr))
-            surrounding_dts.append(d)
-
-          # Find exact peak/trough index in the 5-hour window centered on this hour
-          center_val = surrounding[2] # index 2 is curr hour
-          if center_val >= max(surrounding):
-            # It's a high tide peak! Let's find the exact minute using quadratic fit on surrounding[1], surrounding[2], surrounding[3]
-            y0, y1, y2 = surrounding[1], surrounding[2], surrounding[3]
-            # Vertex offset formula for quadratic curve y = ax^2 + bx + c
-            # xv = 0.5 * (y0 - y2) / (y0 - 2*y1 + y2)
-            denom = (y0 - 2 * y1 + y2)
-            if abs(denom) > 0.0001:
-              xv = 0.5 * (y0 - y2) / denom
-              # xv is between -1 and 1 hours from hour_start
-              peak_dt = hour_start + timedelta(minutes=int(xv * 60))
-              tide_state = f"High {peak_dt.strftime('%H:%M')}"
-            else:
-              tide_state = f"High {hour_start.strftime('%H:%M')}"
-
-          elif center_val <= min(surrounding):
-            # It's a low tide trough!
-            y0, y1, y2 = surrounding[1], surrounding[2], surrounding[3]
-            denom = (y0 - 2 * y1 + y2)
-            if abs(denom) > 0.0001:
-              xv = 0.5 * (y0 - y2) / denom
-              trough_dt = hour_start + timedelta(minutes=int(xv * 60))
-              tide_state = f"Low {trough_dt.strftime('%H:%M')}"
-            else:
-              tide_state = f"Low {hour_start.strftime('%H:%M')}"
+          if extreme_found:
+            t_type, t_dt = extreme_found
+            tide_state = f"{t_type} {t_dt.strftime('%H:%M')}"
           else:
-            diff = surrounding[4] - surrounding[0]
-            if abs(diff) < 0.05:
-              tide_state = "Slack Tide"
-            elif diff > 0:
-              tide_state = "Rising Tide"
+            # If no exact peak/trough falls inside this specific hour slot, check general trend direction between start and end of hour
+            val_start = tides_data.get(hour_start_dt, None)
+            val_next = tides_data.get(hour_end_dt, None)
+            if val_start is not None and val_next is not None:
+              diff = val_next - val_start
+              if abs(diff) < 0.02:
+                tide_state = "Slack Tide"
+              elif diff > 0:
+                tide_state = "Rising Tide"
+              else:
+                tide_state = "Falling Tide"
             else:
-              tide_state = "Falling Tide"
+              tide_state = "Rising Tide"
 
         grid_html += f"""
         <div style="flex: 1; min-width: 85px; background-color: {box_bg}; border: 2px solid {box_border}; border-radius: 6px; padding: 6px; text-align: center; font-size: 11px; color: black;">
