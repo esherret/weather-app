@@ -103,9 +103,7 @@ def get_wind_svg(direction_str):
 
 
 def get_icon_level(pct):
-  if pct >= 75:
-      return 4
-  elif pct >= 50:
+  if pct >= 50:
       return 3
   elif pct >= 25:
       return 2
@@ -265,8 +263,8 @@ else:
           rain_level = get_icon_level(pop)
           thunder_level = get_icon_level(thunder_pct)
 
-          rain_icons = "💧" * rain_level if rain_level > 0 else "—"
-          thunder_icons = "⚡" * thunder_level if thunder_level > 0 else "—"
+          rain_icons = "💧" * rain_level if rain_level > 0 else ""
+          thunder_icons = "⚡" * thunder_level if thunder_level > 0 else ""
 
           # Tide state determination
           local_dt = dummy_dt.replace(tzinfo=None)
@@ -305,7 +303,6 @@ else:
                   else:
                     tide_state = "Rising"
 
-          # Formatting: High/Low in white circles with text; Rising/Falling with doubled arrow size, double spaces, and unbolded text
           if tide_state == "High":
             tide_display = '<span style="display: inline-block; width: 22px; height: 22px; line-height: 22px; text-align: center; background-color: white; color: red; font-weight: bold; font-size: 14px; border-radius: 50%; box-shadow: 0 0 2px rgba(0,0,0,0.3);">H</span> High'
           elif tide_state == "Low":
