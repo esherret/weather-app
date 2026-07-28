@@ -7,7 +7,7 @@ st.set_page_config(
     page_title="Ed's Weather Yak", page_icon="🌤️", layout="wide"
 )
 
-# Custom CSS to force 200px input width, lock time box header height, and remove header whitespace.
+# Custom CSS to force 150px input width and remove header whitespace.
 st.markdown("""
 <style>
     .weather-card * {
@@ -23,22 +23,9 @@ st.markdown("""
         display: none !important;
     }
 
-    /* Force location text box to be 200px wide */
+    /* Force location text box to be 150px wide */
     div[data-baseweb="input"] {
-        width: 200px !important;
-    }
-
-    /* Fixed height for time header box so rows always line up uniformly */
-    .box-time-header {
-        height: 48px;
-        display: flex;
-        flex-direction: column;
-        justify-content: center;
-        align-items: center;
-        margin-bottom: 4px;
-        border-radius: 3px;
-        padding: 2px;
-        border-bottom: 1px solid rgba(0,0,0,0.1);
+        width: 150px !important;
     }
 
     @media (min-width: 768px) {
@@ -88,14 +75,14 @@ st.markdown("""
         
         /* Inline alignment for iPhone */
         [data-testid="column"]:nth-of-type(1) {
-            width: 65% !important;
-            flex: 65% !important;
-            min-width: 65% !important;
+            width: 58% !important;
+            flex: 58% !important;
+            min-width: 58% !important;
         }
         [data-testid="column"]:nth-of-type(2) {
-            width: 35% !important;
-            flex: 35% !important;
-            min-width: 35% !important;
+            width: 42% !important;
+            flex: 42% !important;
+            min-width: 42% !important;
         }
         
         div.stButton > button {
@@ -360,8 +347,8 @@ for label, query in PRESET_LOCATIONS.items():
 # Page title pushed to the very top
 st.markdown("## Ed's Weather Yak")
 
-# Narrower input box (200px wide) and change button placed strictly on the same line
-col_input, col_btn = st.columns([200, 80])
+# 150px input box and change button placed strictly on the same line
+col_input, col_btn = st.columns([150, 80])
 
 with col_input:
   def handle_top_location_change():
@@ -548,8 +535,8 @@ else:
             if thunder_pct > 15:
               reasons.append('<span style="text-shadow: -1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000, 1px 1px 0 #000; color: #ffeb3b;">⚡</span>')
             
-            # Always render a container span to guarantee fixed vertical height (2 lines high)
-            trigger_icons = f'<br><span class="box-text" style="vertical-align: middle; display: inline-block; min-height: 1.2em;">{"".join(reasons)}</span>'
+            if reasons:
+              trigger_icons = f'<br><span class="box-text" style="vertical-align: middle;">{"".join(reasons)}</span>'
 
             wind_bg = get_rating_bg_color(wind_val, is_wind=True)
             rain_bg = get_rating_bg_color(pop, is_wind=False)
@@ -608,7 +595,7 @@ else:
 
             grid_html += f"""
             <div class="weather-card" style="flex: 1; min-width: 0; background-color: {box_bg}; border: 2px solid {box_border}; border-radius: 6px; padding: 4px; text-align: center; color: black;">
-              <div class="box-time-header" style="background-color: {box_border}; color: black;"><span class="box-time">{time_label}</span>{trigger_icons}</div>
+              <div class="box-time" style="margin-bottom: 4px; background-color: {box_border}; color: black; border-radius: 3px; padding: 2px; border-bottom: 1px solid rgba(0,0,0,0.1);">{time_label}{trigger_icons}</div>
               <div style="margin-bottom: 4px; background-color: {wind_bg}; border-radius: 4px; padding: 2px;" title="Wind: {wind_val} mph {wind_dir}">
                 <div class="box-text">{int(wind_val)}mph</div>
                 <div class="box-text">{pointer_svg}<span class="wind-dir-space"></span><span>{wind_dir}</span></div>
@@ -630,7 +617,7 @@ else:
 
             grid_html += f"""
             <div class="weather-card" style="flex: 1; min-width: 0; background-color: #f8f9fa; border: 2px solid #d1d5db; border-radius: 6px; padding: 4px; text-align: center; color: #9ca3af;">
-              <div class="box-time-header" style="background-color: #d1d5db; color: #374151;"><span class="box-time">{time_label}</span></div>
+              <div class="box-time" style="margin-bottom: 4px; background-color: #d1d5db; color: #374151; border-radius: 3px; padding: 2px; border-bottom: 1px solid rgba(0,0,0,0.1);">{time_label}</div>
               <div style="margin-top: 15px; font-size: 9px; font-style: italic; line-height: 1.2;">{msg}</div>
             </div>
             """
