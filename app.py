@@ -324,7 +324,7 @@ with col_title:
   st.caption(f"Current Location Context: {location_name}")
 
 with col_search:
-  subcol1, subcol2 = st.columns([2.5, 1])
+  subcol1, subcol2 = st.columns([1.6, 1])
   with subcol1:
     def handle_top_location_change():
       new_loc = st.session_state.get("top_location_input", "").strip()
@@ -335,14 +335,14 @@ with col_search:
         "Change Location:",
         value=st.session_state["location_query"],
         key="top_location_input",
-        placeholder="Address, landmark, or zip...",
+        placeholder="Address or zip...",
         label_visibility="visible",
         on_change=handle_top_location_change
     )
   with subcol2:
     st.write("") # spacing adjustment
     st.write("") 
-    if st.button("Update"):
+    if st.button("Change"):
       new_loc = st.session_state.get("top_location_input", "").strip()
       if new_loc:
         st.session_state["location_query"] = new_loc
