@@ -252,7 +252,7 @@ else:
               <div>{pointer_svg}<span style="font-size: 9px;">{wind_dir}</span></div>
             </div>
             <div style="margin-bottom: 2px; background-color: {rain_bg}; border-radius: 4px; padding: 2px;" title="Chance of Rain: {pop}%">{rain_icons} <span style="font-size:9px;">{pop}%</span></div>
-            <div style="margin-bottom: 4px; background-color: {thunder_bg}; border-radius: 4px; padding: 2px;" title="Chance of Thunder: {thunder_pct}%">{thunder_icons} <span style="font-size:9px;">{thunder_pct}%</span></div>
+            <div style="margin-bottom: 4px; background-color: {thunder_bg}; border-radius: 4px; padding: 2px;" title="Chance of Thunder: {thunder_pct}%"><span style="text-shadow: -1px -1px 0 #fff, 1px -1px 0 #fff, -1px 1px 0 #fff, 1px 1px 0 #fff; -webkit-text-stroke: 0.5px #000;">{thunder_icons}</span> <span style="font-size:9px;">{thunder_pct}%</span></div>
           </div>
           """
         else:
