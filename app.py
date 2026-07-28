@@ -296,8 +296,8 @@ if "location_query" not in st.session_state:
 if "top_location_input" not in st.session_state:
   st.session_state["top_location_input"] = DEFAULT_ADDRESS
 
-# Top layout split into two columns: Title on the left, and Change Location box on the right
-col_title, col_search = st.columns([2, 1.2])
+# Top layout split into two columns: Title on the left, and Change Location box + button on the right
+col_title, col_search = st.columns([2, 1.4])
 
 with col_title:
   st.title("Weather Window Monitor")
@@ -305,17 +305,22 @@ with col_title:
   st.caption(f"Current Location Context: {location_name}")
 
 with col_search:
-  def handle_top_location_change():
-    new_loc = st.session_state.get("top_location_input", "").strip()
-    if new_loc:
-      st.session_state["location_query"] = new_loc
-
-  st.text_input(
-      "Change Location:",
-      key="top_location_input",
-      placeholder="Address, landmark, or zip...",
-      on_change=handle_top_location_change
-  )
+  subcol1, subcol2 = st.columns([2.5, 1])
+  with subcol1:
+    st.text_input(
+        "Change Location:",
+        key="top_location_input",
+        placeholder="Address, landmark, or zip...",
+        label_visibility="visible"
+    )
+  with subcol2:
+    st.write("") # spacing adjustment
+    st.write("") 
+    if st.button("Update"):
+      new_loc = st.session_state.get("top_location_input", "").strip()
+      if new_loc:
+        st.session_state["location_query"] = new_loc
+        st.rerun()
 
 # Render data using the active session state location query
 LATITUDE, LONGITUDE, location_name = get_lat_lon_from_query(st.session_state["location_query"])
