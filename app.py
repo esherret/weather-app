@@ -1,6 +1,8 @@
 from datetime import datetime, timezone, timedelta
 import requests
 import streamlit as st
+import pandas as pd
+import pydeck as pdk
 
 st.set_page_config(
     page_title="Weather Window Monitor", page_icon="🌤️", layout="wide"
@@ -89,7 +91,6 @@ def get_location_from_ip():
 def get_lat_lon_from_query(query, user_lat=28.3, user_lon=-80.6):
   cleaned_query = query.strip()
   
-  # If the query is strictly a 5-digit zip code, query Nominatim explicitly by postalcode parameter
   if cleaned_query.isdigit() and len(cleaned_query) == 5:
     url = f"https://nominatim.openstreetmap.org/search?postalcode={cleaned_query}&country=United States&format=json&limit=1"
     try:
@@ -100,7 +101,6 @@ def get_lat_lon_from_query(query, user_lat=28.3, user_lon=-80.6):
     except Exception:
       pass
 
-  # Standard free-form query search
   url = f"https://nominatim.openstreetmap.org/search?q={requests.utils.quote(cleaned_query)}&country=United States&format=json&limit=1"
   try:
     res = requests.get(url, headers={"User-Agent": "WeatherWindowApp/1.0"}, timeout=5)
@@ -110,7 +110,6 @@ def get_lat_lon_from_query(query, user_lat=28.3, user_lon=-80.6):
   except Exception:
     pass
   
-  # Fallback only if the user query wasn't explicitly a different zip code
   if not (cleaned_query.isdigit() and len(cleaned_query) == 5):
     url_fallback = f"https://nominatim.openstreetmap.org/search?q={requests.utils.quote(cleaned_query + ', Merritt Island, FL')} &format=json&limit=1"
     try:
@@ -329,13 +328,40 @@ LATITUDE, LONGITUDE, location_name = get_lat_lon_from_query(st.session_state["lo
 
 display_title_location = location_name.split(",")[0] if location_name else "Weather"
 
-# Top layout containing title/caption on the left and comprehensive legends on the right
-top_col1, top_col2 = st.columns([2, 3])
+# Top layout restructured into 3 columns: Title/Caption, Map Thumbnail, and Legends
+top_col1, top_col2, top_col3 = st.columns([2, 1.5, 3])
+
 with top_col1:
   st.title(f"{display_title_location} Weather")
   st.caption(f"Current Location Context: {location_name}")
 
 with top_col2:
+  # Non-interactive map thumbnail placed right next to location information
+  map_df = pd.DataFrame({"lat": [LATITUDE], "lon": [LONGITUDE]})
+  st.pydeck_chart(
+      pdk.Deck(
+          map_style="mapbox://styles/mapbox/light-v10",
+          initial_view_state=pdk.ViewState(
+              latitude=LATITUDE,
+              longitude=LONGITUDE,
+              zoom=11,
+              pitch=0,
+              controller=False,
+          ),
+          layers=[
+              pdk.Layer(
+                  "ScatterplotLayer",
+                  data=map_df,
+                  get_position=["lon", "lat"],
+                  get_color="[255, 75, 75, 200]",
+                  get_radius=1500,
+              )
+          ],
+      ),
+      height=100,
+  )
+
+with top_col3:
   st.markdown("""
     <div style="display: flex; justify-content: flex-end; align-items: flex-start; height: 100%; padding-top: 5px;">
       <div style="display: flex; flex-direction: column; gap: 4px; font-size: 11px; font-weight: bold; background: #f8fafc; padding: 6px 10px; border: 1px solid #d1d5db; border-radius: 6px; box-shadow: 0 1px 2px rgba(0,0,0,0.05);">
