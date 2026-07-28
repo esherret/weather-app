@@ -73,6 +73,16 @@ HEADERS = {
 
 DEFAULT_ADDRESS = "Kelly Park West, 2455, Merritt Island, Brevard County, Florida, 32952, United States"
 
+# Preset locations from earlier context
+PRESET_LOCATIONS = [
+    "Kelly Park West, Merritt Island, FL",
+    "Port Canaveral, FL",
+    "Haulover Canal, Mims, FL",
+    "1000 Islands, Cocoa Beach, FL",
+    "Cape May Harbor",
+    "Cape May Ferry Terminal",
+]
+
 
 @st.cache_data(ttl=3600)
 def get_lat_lon_from_query(query):
@@ -295,6 +305,14 @@ if "location_query" not in st.session_state:
 
 if "top_location_input" not in st.session_state:
   st.session_state["top_location_input"] = DEFAULT_ADDRESS
+
+# Sidebar configuration for quick location links
+st.sidebar.header("Quick Locations")
+for loc in PRESET_LOCATIONS:
+  if st.sidebar.button(loc, key=f"preset_{loc}"):
+    st.session_state["location_query"] = loc
+    st.session_state["top_location_input"] = loc
+    st.rerun()
 
 # Top layout split into two columns: Title on the left, and Change Location box + button on the right
 col_title, col_search = st.columns([2, 1.4])
