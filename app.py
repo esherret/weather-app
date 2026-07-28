@@ -1,4 +1,5 @@
 from datetime import datetime, timezone, timedelta
+from zoneinfo import ZoneInfo
 import requests
 import streamlit as st
 
@@ -177,7 +178,8 @@ def get_sun_times(lat, lon, date_str):
         rise_utc = datetime.fromisoformat(results["sunrise"])
         set_utc = datetime.fromisoformat(results["sunset"])
         
-        local_tz = timezone(timedelta(hours=-5))
+        # Automatically handles local time including Daylight Saving Time shifts
+        local_tz = ZoneInfo("America/New_York")
         
         dawn_local = dawn_utc.astimezone(local_tz)
         dusk_local = dusk_utc.astimezone(local_tz)
