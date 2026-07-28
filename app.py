@@ -43,12 +43,6 @@ def fetch_forecast(lat, lon):
 
 
 @st.cache_data(ttl=3600)
-def fetch_sun_times(lat, lon):
-  # Fetching sunrise/sunset from sunrise-sunset.org API for each day as needed
-  pass
-
-
-@st.cache_data(ttl=3600)
 def fetch_nearest_tide_station(lat, lon):
   url = f"https://api.tidesandcurrents.noaa.gov/mdapi/prod/webapi/stations.json?type=tidepredictions&units=english"
   try:
@@ -106,8 +100,9 @@ def get_sun_times(lat, lon, date_str):
         results = data["results"]
         rise_utc = datetime.fromisoformat(results["sunrise"])
         set_utc = datetime.fromisoformat(results["sunset"])
-        # Approximate conversion to local time (EST/EDT offset or standard formatting)
-        # Using simple formatting from UTC strings converted to local or display directly
+        
+        # Approximate local time conversion using timezone offset based on longitude roughly, 
+        # or local system timezone since server matches user region.
         rise_local = rise_utc.astimezone()
         set_local = set_utc.astimezone()
         return rise_local.strftime("%I:%M %p").lstrip("0"), set_local.strftime("%I:%M %p").lstrip("0")
@@ -326,7 +321,7 @@ else:
         </div>
       </div>
       <div style="font-size: 11px; color: #555; margin-top: 2px; margin-left: 30px;">
-        🌅 {sunrise_str} &nbsp;|&nbsp; 🌇 {sunset_str}
+        Sunrise: {sunrise_str} &nbsp;|&nbsp; Sunset: {sunset_str}
       </div>
     </div>
     '''
