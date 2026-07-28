@@ -277,23 +277,17 @@ else:
 
         tide_state = "N/A"
         if tide_val is not None:
-          surrounding_vals = []
-          for offset in range(-2, 3):
-            chk_dt = tide_key + timedelta(hours=offset)
-            surrounding_vals.append(tides_data.get(chk_dt, tide_val))
+          prev_dt = tide_key - timedelta(hours=1)
+          next_dt = tide_key + timedelta(hours=1)
+          prev_val = tides_data.get(prev_dt, tide_val)
+          next_val = tides_data.get(next_dt, tide_val)
 
-          is_peak = tide_val >= max(surrounding_vals)
-          is_trough = tide_val <= min(surrounding_vals)
-
-          if is_peak:
+          if tide_val >= prev_val and tide_val >= next_val:
             tide_state = "High Tide"
-          elif is_trough:
+          elif tide_val <= prev_val and tide_val <= next_val:
             tide_state = "Low Tide"
           else:
-            diff = surrounding_vals[4] - surrounding_vals[0]
-            if abs(diff) < 0.03:
-              tide_state = "Slack Tide"
-            elif diff > 0:
+            if next_val > prev_val:
               tide_state = "Rising Tide"
             else:
               tide_state = "Falling Tide"
