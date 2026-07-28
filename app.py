@@ -32,29 +32,6 @@ def fetch_forecast():
   return forecast_response.json()["properties"]["periods"]
 
 
-@st.cache_data(ttl=3600)
-def fetch_tides():
-  today_str = datetime.now().strftime("%Y%m%d")
-  url = (
-      f"https://api.tidesandcurrents.noaa.gov/api/prod/datagetter?"
-      f"begin_date={today_str}&range=168&station=8721604&product=predictions"
-      f"&datum=MLLW&units=english&time_zone=lst_ldt&format=json"
-  )
-  try:
-    res = requests.get(url, timeout=5)
-    if res.status_code == 200:
-      data = res.json()
-      predictions = data.get("predictions", [])
-      tide_map = {}
-      for p in predictions:
-        dt_obj = datetime.strptime(p["t"], "%Y-%m-%d %H:%M")
-        tide_map[dt_obj] = float(p["v"])
-      return tide_map
-  except Exception:
-    pass
-  return {}
-
-
 def get_moon_phase_emoji(dt):
   known_new_moon = datetime(2024, 1, 11, tzinfo=timezone.utc)
   lunar_cycle = 29.5305877057
@@ -144,10 +121,9 @@ def get_rating_bg_color(val, is_wind=False):
       return "#e6f4ea"
 
 
-st.title("🌤️ Weather & Tide Windows (Port Canaveral Station ID: 8721604)")
+st.title("🌤️ Weather Windows (Port Canaveral Area)")
 
 periods = fetch_forecast()
-tides_data = fetch_tides()
 
 if not periods:
   st.error("Failed to retrieve data from the National Weather Service API.")
@@ -259,7 +235,7 @@ else:
           box_bg = "#fff"
         elif is_yellow:
           box_border = "#ffeb3b"
-          box_bg = NumPy = "#fff"
+          box_bg = "#fff"
         else:
           box_border = "#21c354"
           box_bg = "#fff"
@@ -271,57 +247,6 @@ else:
         rain_level = get_icon_level(pop)
         thunder_level = get_icon_level(thunder_pct)
 
-        local_dt = start_time.astimezone().replace(tzinfo=None)
-        tide_key = local_dt.replace(minute=0, second=0, microsecond=0)
-        
-        # Pull 6-minute interval predictions around this hour to find absolute true peaks/troughs accurately
-        tide_state = "N/A"
-        if tides_data:
-          # Check local window of +/- 30 minutes around this hour mark
-          window_start_chk = local_dt - timedelta(minutes=35)
-          window_end_chk = local_dt + timedelta(minutes=35)
-          
-          local_preds = [(dt, val) for dt, val in tides_data.items() if window_start_chk <= dt <= window_end_chk]
-          
-          is_peak = False
-          is_trough = False
-          
-          if local_preds:
-            # Sort by value to find local extremum in this block
-            # Let's check if there is an actual turning point (peak/trough) right near this hour
-            # We look at a wider pool of predictions around this specific hour key
-            broader_pool = [(dt, val) for dt, val in tides_data.items() if local_dt - timedelta(hours=1, minutes=30) <= dt <= local_dt + timedelta(hours=1, minutes=30)]
-            if broader_pool:
-              # find index of closest to local_dt
-              closest_idx = min(range(len(broader_pool)), key=lambda idx: abs(broader_pool[idx][0] - local_dt))
-              curr_dt, curr_val = broader_pool[closest_idx]
-              
-              if closest_idx > 0 and closest_idx < len(broader_pool) - 1:
-                prev_val = broader_pool[closest_idx - 1][1]
-                next_val = broader_pool[closest_idx + 1][1]
-                if curr_val >= prev_val and curr_val >= next_val:
-                  is_peak = True
-                elif curr_val <= prev_val and curr_val <= next_val:
-                  is_trough = True
-
-          if is_peak:
-            tide_state = "High Tide"
-          elif is_trough:
-            tide_state = "Low Tide"
-          else:
-            # Check general slope using adjacent hourly keys
-            prev_dt = tide_key - timedelta(hours=1)
-            next_dt = tide_key + timedelta(hours=1)
-            prev_val = tides_data.get(prev_dt, tides_data.get(tide_key, 0))
-            next_val = tides_data.get(next_dt, tides_data.get(tide_key, 0))
-            diff = next_val - prev_val
-            if abs(diff) < 0.03:
-              tide_state = "Slack Tide"
-            elif diff > 0:
-              tide_state = "Rising Tide"
-            else:
-              tide_state = "Falling Tide"
-
         grid_html += f"""
         <div style="flex: 1; min-width: 85px; background-color: {box_bg}; border: 2px solid {box_border}; border-radius: 6px; padding: 6px; text-align: center; font-size: 11px; color: black;">
           <div style="font-weight: bold; margin-bottom: 4px; border-bottom: 1px solid rgba(0,0,0,0.1);">{time_label}</div>
@@ -331,7 +256,6 @@ else:
           </div>
           <div style="margin-bottom: 2px; background-color: {rain_bg}; border-radius: 4px; padding: 2px;" title="Chance of Rain: {pop}%">💧{'I'*rain_level} <span style="font-size:9px;">{pop}%</span></div>
           <div style="margin-bottom: 4px; background-color: {thunder_bg}; border-radius: 4px; padding: 2px;" title="Chance of Thunder: {thunder_pct}%"><span style="text-shadow: 1px 1px 0 #000;">⚡</span>{'I'*thunder_level} <span style="font-size:9px;">{thunder_pct}%</span></div>
-          <div style="font-size: 9px; color: #0369a1; font-weight: bold; background-color: #f0f9ff; border-radius: 3px; padding: 2px;" title="Tide State">{tide_state}</div>
         </div>
         """
 
