@@ -297,26 +297,18 @@ def get_rating_bg_color(val, is_wind=False):
 if "location_query" not in st.session_state:
   st.session_state["location_query"] = "Kelly Park West, Merritt Island, FL"
 
-
-def handle_submit():
-  val = st.session_state.get("location_input", "").strip()
-  if val:
-    st.session_state["location_query"] = val
-
-
-# Sidebar configuration using form and submit button
+# Sidebar configuration using direct text input and button outside of forms
 st.sidebar.header("Location Settings")
-with st.sidebar.form(key="location_form"):
-  st.text_input(
-      "Enter ZIP, Address, or Landmark",
-      key="location_input",
-      placeholder="Type new location...",
-  )
-  submit_button = st.form_submit_button(
-      label="Update Location", on_click=handle_submit
-  )
+entered_query = st.sidebar.text_input(
+    "Enter ZIP, Address, or Landmark", value=st.session_state["location_query"]
+)
 
-# Quick location preset buttons below the form
+if st.sidebar.button("Update Location"):
+  if entered_query and entered_query != st.session_state["location_query"]:
+    st.session_state["location_query"] = entered_query
+    st.rerun()
+
+# Quick location preset buttons below
 st.sidebar.markdown("**Quick Locations:**")
 preset_locs = [
     "Kelly Park West, Merritt Island, FL",
