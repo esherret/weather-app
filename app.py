@@ -47,7 +47,6 @@ def fetch_tides():
       predictions = data.get("predictions", [])
       tide_map = {}
       for p in predictions:
-        # Keep keys as offset-naive datetimes matching local station time (lst_ldt)
         dt_obj = datetime.strptime(p["t"], "%Y-%m-%d %H:%M")
         tide_map[dt_obj] = float(p["v"])
       return tide_map
@@ -272,48 +271,32 @@ else:
         rain_level = get_icon_level(pop)
         thunder_level = get_icon_level(thunder_pct)
 
-        # Make local_dt offset-naive to match the offset-naive keys in tides_data
         local_dt = start_time.astimezone().replace(tzinfo=None)
-        
+        tide_key = local_dt.replace(minute=0, second=0, microsecond=0)
+        tide_val = tides_data.get(tide_key)
+
         tide_state = "N/A"
-        if tides_data:
-          hour_start_dt = local_dt.replace(minute=0, second=0, microsecond=0)
-          hour_end_dt = hour_start_dt + timedelta(hours=1)
+        if tide_val is not None:
+          surrounding_vals = []
+          for offset in range(-2, 3):
+            chk_dt = tide_key + timedelta(hours=offset)
+            surrounding_vals.append(tides_data.get(chk_dt, tide_val))
 
-          sorted_tide_keys = sorted(tides_data.keys())
-          
-          extreme_found = None
-          for dt_key in sorted_tide_keys:
-            if hour_start_dt <= dt_key < hour_end_dt:
-              val = tides_data[dt_key]
-              prev_dt = dt_key - timedelta(hours=1)
-              next_dt = dt_key + timedelta(hours=1)
-              if prev_dt in tides_data and next_dt in tides_data:
-                p_val = tides_data[prev_dt]
-                n_val = tides_data[next_dt]
-                if val >= p_val and val >= n_val:
-                  extreme_found = ("High", dt_key)
-                  break
-                elif val <= p_val and val <= n_val:
-                  extreme_found = ("Low", dt_key)
-                  break
+          is_peak = tide_val >= max(surrounding_vals)
+          is_trough = tide_val <= min(surrounding_vals)
 
-          if extreme_found:
-            t_type, t_dt = extreme_found
-            tide_state = f"{t_type} {t_dt.strftime('%H:%M')}"
+          if is_peak:
+            tide_state = "High Tide"
+          elif is_trough:
+            tide_state = "Low Tide"
           else:
-            val_start = tides_data.get(hour_start_dt, None)
-            val_next = tides_data.get(hour_end_dt, None)
-            if val_start is not None and val_next is not None:
-              diff = val_next - val_start
-              if abs(diff) < 0.02:
-                tide_state = "Slack Tide"
-              elif diff > 0:
-                tide_state = "Rising Tide"
-              else:
-                tide_state = "Falling Tide"
-            else:
+            diff = surrounding_vals[4] - surrounding_vals[0]
+            if abs(diff) < 0.03:
+              tide_state = "Slack Tide"
+            elif diff > 0:
               tide_state = "Rising Tide"
+            else:
+              tide_state = "Falling Tide"
 
         grid_html += f"""
         <div style="flex: 1; min-width: 85px; background-color: {box_bg}; border: 2px solid {box_border}; border-radius: 6px; padding: 6px; text-align: center; font-size: 11px; color: black;">
