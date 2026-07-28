@@ -47,7 +47,7 @@ def fetch_tides():
       predictions = data.get("predictions", [])
       tide_map = {}
       for p in predictions:
-        # p['t'] format: "YYYY-MM-DD HH:MM"
+        # Keep keys as offset-naive datetimes matching local station time (lst_ldt)
         dt_obj = datetime.strptime(p["t"], "%Y-%m-%d %H:%M")
         tide_map[dt_obj] = float(p["v"])
       return tide_map
@@ -272,25 +272,19 @@ else:
         rain_level = get_icon_level(pop)
         thunder_level = get_icon_level(thunder_pct)
 
-        local_dt = start_time.astimezone() # Local datetime for this forecast box hour
+        # Make local_dt offset-naive to match the offset-naive keys in tides_data
+        local_dt = start_time.astimezone().replace(tzinfo=None)
         
         tide_state = "N/A"
         if tides_data:
-          # Find all actual high/low peaks/troughs across the full day or neighboring hours
-          # We check a window from 30 minutes before this hour to 30 minutes after this hour
           hour_start_dt = local_dt.replace(minute=0, second=0, microsecond=0)
           hour_end_dt = hour_start_dt + timedelta(hours=1)
 
-          matched_extreme = None
-          
-          # Scan NOAA predictions dictionary for any local peak or trough falling strictly inside [hour_start_dt, hour_end_dt)
-          # A local peak/trough is where value is greater than or less than both adjacent entries (e.g., +/- 1 hour)
           sorted_tide_keys = sorted(tides_data.keys())
           
           extreme_found = None
           for dt_key in sorted_tide_keys:
             if hour_start_dt <= dt_key < hour_end_dt:
-              # Check if it's a local max or min by inspecting neighbors
               val = tides_data[dt_key]
               prev_dt = dt_key - timedelta(hours=1)
               next_dt = dt_key + timedelta(hours=1)
@@ -308,7 +302,6 @@ else:
             t_type, t_dt = extreme_found
             tide_state = f"{t_type} {t_dt.strftime('%H:%M')}"
           else:
-            # If no exact peak/trough falls inside this specific hour slot, check general trend direction between start and end of hour
             val_start = tides_data.get(hour_start_dt, None)
             val_next = tides_data.get(hour_end_dt, None)
             if val_start is not None and val_next is not None:
