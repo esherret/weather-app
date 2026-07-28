@@ -4,7 +4,7 @@ import requests
 import streamlit as st
 
 st.set_page_config(
-    page_title="Weather Window Monitor", page_icon="🌤️", layout="wide"
+    page_title="Ed's Weather Yak", page_icon="🌤️", layout="wide"
 )
 
 # Custom CSS for spacing, top margin to clear Streamlit's toolbar, bolding, sizing, and header shading.
@@ -73,15 +73,16 @@ HEADERS = {
 
 DEFAULT_ADDRESS = "Kelly Park West, 2455, Merritt Island, Brevard County, Florida, 32952, United States"
 
-# Preset locations from earlier context
-PRESET_LOCATIONS = [
-    "Kelly Park West, Merritt Island, FL",
-    "Port Canaveral, FL",
-    "Haulover Canal, Mims, FL",
-    "1000 Islands, Cocoa Beach, FL",
-    "Cape May Harbor",
-    "Cape May Ferry Terminal",
-]
+# Updated preset locations with requested display labels mapping to search queries
+PRESET_LOCATIONS = {
+    "Kelly Park West, Merritt Island, FL": "Kelly Park West, Merritt Island, FL",
+    "Port Canaveral, FL": "Port Canaveral, FL",
+    "Mims, FL": "Haulover Canal, Mims, FL",
+    "Cocoa Beach, FL": "1000 Islands, Cocoa Beach, FL",
+    "Vero Beach, FL": "Vero Beach, FL",
+    "Cape May Harbor, Cape May, NJ": "Cape May Harbor",
+    "North Cape May, NJ": "Cape May Ferry Terminal",
+}
 
 
 @st.cache_data(ttl=3600)
@@ -308,28 +309,34 @@ if "top_location_input" not in st.session_state:
 
 # Sidebar configuration for quick location links
 st.sidebar.header("Quick Locations")
-for loc in PRESET_LOCATIONS:
-  if st.sidebar.button(loc, key=f"preset_{loc}"):
-    st.session_state["location_query"] = loc
-    st.session_state["top_location_input"] = loc
+for label, query in PRESET_LOCATIONS.items():
+  if st.sidebar.button(label, key=f"preset_{label}"):
+    st.session_state["location_query"] = query
+    st.session_state["top_location_input"] = query
     st.rerun()
 
 # Top layout split into two columns: Title on the left, and Change Location box + button on the right
 col_title, col_search = st.columns([2, 1.4])
 
 with col_title:
-  st.title("Weather Window Monitor")
+  st.title("Ed's Weather Yak")
   _, _, location_name = get_lat_lon_from_query(st.session_state["location_query"])
   st.caption(f"Current Location Context: {location_name}")
 
 with col_search:
   subcol1, subcol2 = st.columns([2.5, 1])
   with subcol1:
+    def handle_top_location_change():
+      new_loc = st.session_state.get("top_location_input", "").strip()
+      if new_loc:
+        st.session_state["location_query"] = new_loc
+
     st.text_input(
         "Change Location:",
         key="top_location_input",
         placeholder="Address, landmark, or zip...",
-        label_visibility="visible"
+        label_visibility="visible",
+        on_change=handle_top_location_change
     )
   with subcol2:
     st.write("") # spacing adjustment
