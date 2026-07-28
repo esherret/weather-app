@@ -73,7 +73,7 @@ HEADERS = {
 
 DEFAULT_ADDRESS = "Kelly Park West, 2455, Merritt Island, Brevard County, Florida, 32952, United States"
 
-# Updated preset locations with requested display labels mapping to search queries
+# Preset locations mapping display labels to exact search queries
 PRESET_LOCATIONS = {
     "Kelly Park West, Merritt Island, FL": "Kelly Park West, Merritt Island, FL",
     "Port Canaveral, FL": "Port Canaveral, FL",
@@ -300,19 +300,15 @@ def get_rating_bg_color(val, is_wind=False):
       return "#e6f4ea"
 
 
-# Initialize session state for both query and text input value
+# Initialize session state for active query
 if "location_query" not in st.session_state:
   st.session_state["location_query"] = DEFAULT_ADDRESS
-
-if "top_location_input" not in st.session_state:
-  st.session_state["top_location_input"] = DEFAULT_ADDRESS
 
 # Sidebar configuration for quick location links
 st.sidebar.header("Quick Locations")
 for label, query in PRESET_LOCATIONS.items():
   if st.sidebar.button(label, key=f"preset_{label}"):
     st.session_state["location_query"] = query
-    st.session_state["top_location_input"] = query
     st.rerun()
 
 # Top layout split into two columns: Title on the left, and Change Location box + button on the right
@@ -331,8 +327,10 @@ with col_search:
       if new_loc:
         st.session_state["location_query"] = new_loc
 
+    # Explicitly bound value to session state so text box updates when side links are clicked
     st.text_input(
         "Change Location:",
+        value=st.session_state["location_query"],
         key="top_location_input",
         placeholder="Address, landmark, or zip...",
         label_visibility="visible",
