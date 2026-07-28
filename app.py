@@ -7,7 +7,7 @@ st.set_page_config(
     page_title="Ed's Weather Yak", page_icon="🌤️", layout="wide"
 )
 
-# Custom CSS for stacking input and button vertically, widening desktop textbox, and restoring sidebar visibility.
+# Custom CSS for sidebar spacing, wider sidebar buttons, stacking input/button, and desktop widening.
 st.markdown("""
 <style>
     .weather-card * {
@@ -26,6 +26,16 @@ st.markdown("""
 
     section[data-testid="stSidebar"] {
         display: block !important;
+    }
+
+    /* Add space between sidebar header ("Quick Locations") and the first button */
+    section[data-testid="stSidebar"] div[data-testid="stVerticalBlock"] > div:first-child {
+        margin-bottom: 1rem !important;
+    }
+
+    /* Make sidebar buttons wider */
+    section[data-testid="stSidebar"] div.stButton > button {
+        width: 100% !important;
     }
 
     /* Reduce vertical gap between stacked elements in the input section */
@@ -344,7 +354,7 @@ if "location_query" not in st.session_state:
 if "top_location_input" not in st.session_state:
   st.session_state["top_location_input"] = DEFAULT_ADDRESS
 
-# Restore Sidebar configuration for quick location links
+# Sidebar configuration for quick location links
 st.sidebar.header("Quick Locations")
 for label, query in PRESET_LOCATIONS.items():
   if st.sidebar.button(label, key=f"preset_{label}"):
