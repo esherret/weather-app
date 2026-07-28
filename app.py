@@ -287,14 +287,28 @@ def get_rating_bg_color(val, is_wind=False):
 if "location_query" not in st.session_state:
   st.session_state["location_query"] = "Kelly Park West, Merritt Island, FL"
 
-LATITUDE, LONGITUDE, location_name = get_lat_lon_from_query(
-    st.session_state["location_query"]
-)
+# Top layout split into two columns: Title on the left, and Change Location box on the right
+col_title, col_search = st.columns([2, 1.2])
 
-display_title_location = location_name.split(",")[0] if location_name else "Weather"
+with col_title:
+  LATITUDE, LONGITUDE, location_name = get_lat_lon_from_query(st.session_state["location_query"])
+  display_title_location = location_name.split(",")[0] if location_name else "Weather"
+  st.title(f"{display_title_location} Weather")
+  st.caption(f"Current Location Context: {location_name}")
 
-st.title(f"{display_title_location} Weather")
-st.caption(f"Current Location Context: {location_name}")
+with col_search:
+  def handle_top_location_change():
+    new_loc = st.session_state.get("top_location_input", "").strip()
+    if new_loc:
+      st.session_state["location_query"] = new_loc
+
+  st.text_input(
+      "Change Location:",
+      value="",
+      placeholder="Address, landmark, or zip...",
+      key="top_location_input",
+      on_change=handle_top_location_change
+  )
 
 station_id = fetch_nearest_tide_station(LATITUDE, LONGITUDE)
 periods = fetch_forecast(LATITUDE, LONGITUDE)
