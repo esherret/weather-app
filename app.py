@@ -72,7 +72,7 @@ HEADERS = {
 
 
 @st.cache_data(ttl=3600)
-def get_lat_lon_from_query(query, user_lat=28.3, user_lon=-80.6):
+def get_lat_lon_from_query(query):
   cleaned_query = query.strip()
   
   if cleaned_query.isdigit() and len(cleaned_query) == 5:
@@ -94,7 +94,6 @@ def get_lat_lon_from_query(query, user_lat=28.3, user_lon=-80.6):
   except Exception:
     pass
   
-  # Absolute fallback if API lookups fail completely
   return 28.3751, -80.6865, "Kelly Park West, Merritt Island, FL"
 
 
@@ -288,23 +287,16 @@ def get_rating_bg_color(val, is_wind=False):
 if "location_query" not in st.session_state:
   st.session_state["location_query"] = "Kelly Park West, Merritt Island, FL"
 
-
-def handle_update():
-  val = st.session_state.get("location_text_input", "").strip()
-  if val:
-    st.session_state["location_query"] = val
-
-
-# Sidebar configuration for location updating
+# Sidebar configuration using a form so hitting enter or clicking Update Location works reliably
 st.sidebar.header("Location Settings")
-st.sidebar.text_input(
-    "Enter ZIP, Address, or Landmark",
-    key="location_text_input",
-    placeholder="Type new location...",
-)
+with st.sidebar.form(key="location_form"):
+  entered_query = st.text_input("Enter ZIP, Address, or Landmark", value=st.session_state["location_query"])
+  submit_button = st.form_submit_button(label="Update Location")
 
-if st.sidebar.button("Update Location", on_click=handle_update):
-  pass
+if submit_button:
+  if entered_query:
+    st.session_state["location_query"] = entered_query
+    st.rerun()
 
 # Quick location preset buttons
 st.sidebar.markdown("**Quick Locations:**")
