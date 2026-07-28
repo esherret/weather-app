@@ -79,6 +79,18 @@ def get_wind_svg(direction_str):
   return f'<span style="display: inline-block; transform: rotate({deg}deg); width: 14px; height: 14px; line-height: 14px; text-align: center; vertical-align: middle; margin-right: 4px;">⬆️</span>'
 
 
+def get_window_type(hour):
+  if 6 <= hour <= 9:
+    return "Morning (6AM-9AM)"
+  elif 10 <= hour <= 13:
+    return "Midday (10AM-1PM)"
+  elif 14 <= hour <= 17:
+    return "Afternoon (2PM-5PM)"
+  elif 18 <= hour <= 21:
+    return "Evening (6PM-9PM)"
+  return None
+
+
 def get_icon_level(pct):
   if pct >= 75:
       return 5
@@ -116,7 +128,6 @@ periods = fetch_forecast()
 if not periods:
   st.error("Failed to retrieve data from the National Weather Service API.")
 else:
-  # Map existing periods by date and hour
   forecast_map = {}
   for period in periods:
     start_time = datetime.fromisoformat(period["startTime"])
@@ -126,7 +137,6 @@ else:
       forecast_map[day_name] = {}
     forecast_map[day_name][hour] = (start_time, period)
 
-  # Define the 4 standard windows and their respective hours
   windows_def = {
       "Morning (6AM-9AM)": [6, 7, 8, 9],
       "Midday (10AM-1PM)": [10, 11, 12, 13],
@@ -134,36 +144,60 @@ else:
       "Evening (6PM-9PM)": [18, 19, 20, 21],
   }
 
-  # Build days list from forecast data
   available_days = list(forecast_map.keys())
-
   now = datetime.now(timezone.utc)
 
   for day_name in available_days:
     day_hours = forecast_map[day_name]
     sample_dt = list(day_hours.values())[0][0] if day_hours else datetime.now(timezone.utc)
 
-    # Calculate window dot colors for the header
-    window_colors = {}
-    for win_name, hours in windows_def.items():
-      win_periods = [day_hours[h] for h in hours if h in day_hours]
-      if not win_periods:
-        window_colors[win_name] = None
-        continue
-      
-      window_end = win_periods[-1][0].replace(minute=59, second=59)
-      if window_end < now:
-          window_colors[win_name] = "PAST"
-          continue
+    # Find the current active window based on current time, or default to Morning if none match/today isn't active
+    active_window_name = None
+    current_local_hour = datetime.now().hour
+    
+    # Check if this day corresponds to today
+    is_today = sample_dt.date() == datetime.now().date()
+    
+    if is_today:
+      for win_name, hours in windows_def.items():
+        if hours[0] <= current_local_hour <= hours[-1]:
+          active_window_name = win_name
+          break
+      if not active_window_name and current_local_hour < 6:
+        active_window_name = "Morning (6AM-9AM)"
+      elif not active_window_name:
+        continue # If the day's windows have all passed, skip showing the day entirely
+    else:
+      # For future days, default to showing the Morning window or first available
+      active_window_name = "Morning (6AM-9AM)"
 
-      has_red = False
-      has_yellow = False
-      for _, period in win_periods:
-        wind_val = float(period["windSpeed"].split()[0])
+    moon_emoji, moon_desc = get_moon_phase_emoji(sample_dt)
+
+    # Render day header with just the active window name included
+    header_html = f'<div style="display: flex; align-items: center; gap: 10px; margin-bottom: 8px;"><h3 style="margin: 0;"><span title="{moon_desc}" style="margin-right: 6px;">{moon_emoji}</span>{day_name} — {active_window_name}</h3></div>'
+    st.markdown(header_html, unsafe_allow_html=True)
+
+    hours = windows_def[active_window_name]
+    st.markdown(f"**{active_window_name}**")
+
+    grid_html = '<div style="display: flex; gap: 6px; overflow-x: auto; padding-bottom: 6px;">'
+
+    for h in hours:
+      dummy_dt = sample_dt.replace(hour=h, minute=0, second=0, microsecond=0)
+      time_label = dummy_dt.strftime("%l%p").strip()
+
+      if h in day_hours:
+        _, period = day_hours[h]
+        wind_str = period["windSpeed"]
+        wind_val = float(wind_str.split()[0])
+        wind_dir = period.get("windDirection", "N")
+        pointer_svg = get_wind_svg(wind_dir)
+
         pop = period.get("probabilityOfPrecipitation", {}).get("value") or 0
         short_fc = period["shortForecast"].lower()
         detailed_fc = period["detailedForecast"].lower()
         text_blob = f"{short_fc} {detailed_fc}"
+
         has_thunder = "thunder" in text_blob or "storm" in text_blob
         thunder_pct = 80 if has_thunder and "slight chance" not in short_fc else (30 if has_thunder else 0)
 
@@ -171,95 +205,39 @@ else:
         is_yellow = not is_red and (wind_val > 8.0 or pop > 15 or thunder_pct > 15)
 
         if is_red:
-          has_red = True
+          box_border = "#ff4b4b"
         elif is_yellow:
-          has_yellow = True
-
-      if has_red:
-        window_colors[win_name] = "#ff4b4b"
-      elif has_yellow:
-        window_colors[win_name] = "#ffeb3b"
-      else:
-        window_colors[win_name] = "#21c354"
-
-    moon_emoji, moon_desc = get_moon_phase_emoji(sample_dt)
-
-    header_html = f'<div style="display: flex; align-items: center; gap: 10px; margin-bottom: 8px;"><h3 style="margin: 0;"><span title="{moon_desc}" style="margin-right: 6px;">{moon_emoji}</span>{day_name}</h3><div style="display: flex; gap: 4px;">'
-    for win_name in windows_def.keys():
-      color = window_colors.get(win_name)
-      if color == "PAST":
-        header_html += f'<div title="{win_name} (Past)" style="width: 14px; height: 14px;"></div>'
-      elif color:
-        header_html += f'<div title="{win_name}" style="width: 14px; height: 14px; background-color: {color}; border: 1px solid rgba(0,0,0,0.2); border-radius: 3px;"></div>'
-      else:
-        header_html += f'<div title="{win_name} (No Data)" style="width: 14px; height: 14px; background-color: #eee; border: 1px solid rgba(0,0,0,0.2); border-radius: 3px;"></div>'
-    header_html += '</div></div>'
-    st.markdown(header_html, unsafe_allow_html=True)
-
-    for window_name, hours in windows_def.items():
-      st.markdown(f"**{window_name}**")
-
-      grid_html = '<div style="display: flex; gap: 6px; overflow-x: auto; padding-bottom: 6px;">'
-
-      for h in hours:
-        # Format the time label cleanly (e.g., 6AM, 12PM)
-        dummy_dt = sample_dt.replace(hour=h, minute=0, second=0, microsecond=0)
-        time_label = dummy_dt.strftime("%l%p").strip()
-
-        if h in day_hours:
-          _, period = day_hours[h]
-          wind_str = period["windSpeed"]
-          wind_val = float(wind_str.split()[0])
-          wind_dir = period.get("windDirection", "N")
-          pointer_svg = get_wind_svg(wind_dir)
-
-          pop = period.get("probabilityOfPrecipitation", {}).get("value") or 0
-          short_fc = period["shortForecast"].lower()
-          detailed_fc = period["detailedForecast"].lower()
-          text_blob = f"{short_fc} {detailed_fc}"
-
-          has_thunder = "thunder" in text_blob or "storm" in text_blob
-          thunder_pct = 80 if has_thunder and "slight chance" not in short_fc else (30 if has_thunder else 0)
-
-          is_red = wind_val > 13.0 or pop > 25 or thunder_pct > 25
-          is_yellow = not is_red and (wind_val > 8.0 or pop > 15 or thunder_pct > 15)
-
-          if is_red:
-            box_border = "#ff4b4b"
-          elif is_yellow:
-            box_border = "#ffeb3b"
-          else:
-            box_border = "#21c354"
-          box_bg = "#fff"
-
-          wind_bg = get_rating_bg_color(wind_val, is_wind=True)
-          rain_bg = get_rating_bg_color(pop, is_wind=False)
-          thunder_bg = get_rating_bg_color(thunder_pct, is_wind=False)
-
-          rain_level = get_icon_level(pop)
-          thunder_level = get_icon_level(thunder_pct)
-
-          grid_html += f"""
-          <div style="flex: 1; min-width: 85px; background-color: {box_bg}; border: 2px solid {box_border}; border-radius: 6px; padding: 6px; text-align: center; font-size: 11px; color: black;">
-            <div style="font-weight: bold; margin-bottom: 4px; border-bottom: 1px solid rgba(0,0,0,0.1);">{time_label}</div>
-            <div style="margin-bottom: 4px; background-color: {wind_bg}; border-radius: 4px; padding: 2px;" title="Wind: {wind_val} mph {wind_dir}">
-              <div>{int(wind_val)}mph</div>
-              <div>{pointer_svg}<span style="font-size: 9px;">{wind_dir}</span></div>
-            </div>
-            <div style="margin-bottom: 2px; background-color: {rain_bg}; border-radius: 4px; padding: 2px;" title="Chance of Rain: {pop}%">💧{'I'*rain_level} <span style="font-size:9px;">{pop}%</span></div>
-            <div style="margin-bottom: 4px; background-color: {thunder_bg}; border-radius: 4px; padding: 2px;" title="Chance of Thunder: {thunder_pct}%"><span style="text-shadow: 1px 1px 0 #000;">⚡</span>{'I'*thunder_level} <span style="font-size:9px;">{thunder_pct}%</span></div>
-          </div>
-          """
+          box_border = "#ffeb3b"
         else:
-          # Blank grey box for missing or unavailable hours
-          grid_html += f"""
-          <div style="flex: 1; min-width: 85px; background-color: #f8f9fa; border: 2px solid #d1d5db; border-radius: 6px; padding: 6px; text-align: center; font-size: 11px; color: #9ca3af;">
-            <div style="font-weight: bold; margin-bottom: 4px; border-bottom: 1px solid rgba(0,0,0,0.1);">{time_label}</div>
-            <div style="margin-top: 20px; font-size: 10px; font-style: italic;">No Data</div>
+          box_border = "#21c354"
+        box_bg = "#fff"
+
+        wind_bg = get_rating_bg_color(wind_val, is_wind=True)
+        rain_bg = get_rating_bg_color(pop, is_wind=False)
+        thunder_bg = get_rating_bg_color(thunder_pct, is_wind=False)
+
+        rain_level = get_icon_level(pop)
+        thunder_level = get_icon_level(thunder_pct)
+
+        grid_html += f"""
+        <div style="flex: 1; min-width: 85px; background-color: {box_bg}; border: 2px solid {box_border}; border-radius: 6px; padding: 6px; text-align: center; font-size: 11px; color: black;">
+          <div style="font-weight: bold; margin-bottom: 4px; border-bottom: 1px solid rgba(0,0,0,0.1);">{time_label}</div>
+          <div style="margin-bottom: 4px; background-color: {wind_bg}; border-radius: 4px; padding: 2px;" title="Wind: {wind_val} mph {wind_dir}">
+            <div>{int(wind_val)}mph</div>
+            <div>{pointer_svg}<span style="font-size: 9px;">{wind_dir}</span></div>
           </div>
-          """
+          <div style="margin-bottom: 2px; background-color: {rain_bg}; border-radius: 4px; padding: 2px;" title="Chance of Rain: {pop}%">💧{'I'*rain_level} <span style="font-size:9px;">{pop}%</span></div>
+          <div style="margin-bottom: 4px; background-color: {thunder_bg}; border-radius: 4px; padding: 2px;" title="Chance of Thunder: {thunder_pct}%"><span style="text-shadow: 1px 1px 0 #000;">⚡</span>{'I'*thunder_level} <span style="font-size:9px;">{thunder_pct}%</span></div>
+        </div>
+        """
+      else:
+        grid_html += f"""
+        <div style="flex: 1; min-width: 85px; background-color: #f8f9fa; border: 2px solid #d1d5db; border-radius: 6px; padding: 6px; text-align: center; font-size: 11px; color: #9ca3af;">
+          <div style="font-weight: bold; margin-bottom: 4px; border-bottom: 1px solid rgba(0,0,0,0.1);">{time_label}</div>
+          <div style="margin-top: 20px; font-size: 10px; font-style: italic;">No Data</div>
+        </div>
+        """
 
-      grid_html += '</div>'
-      st.html(grid_html)
-
+    grid_html += '</div>'
+    st.html(grid_html)
     st.divider()
