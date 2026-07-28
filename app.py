@@ -297,18 +297,31 @@ def get_rating_bg_color(val, is_wind=False):
 if "location_query" not in st.session_state:
   st.session_state["location_query"] = "Kelly Park West, Merritt Island, FL"
 
-# Sidebar configuration using direct text input and button outside of forms
+if "user_input" not in st.session_state:
+  st.session_state["user_input"] = ""
+
+
+def handle_update():
+  query = st.session_state.get("location_text_input", "").strip()
+  if query:
+    st.session_state["location_query"] = query
+    st.session_state["user_input"] = ""
+
+
+# Sidebar configuration for location updating
 st.sidebar.header("Location Settings")
-entered_query = st.sidebar.text_input(
-    "Enter ZIP, Address, or Landmark", value=st.session_state["location_query"]
+st.sidebar.text_input(
+    "Enter ZIP, Address, or Landmark",
+    value=st.session_state["user_input"],
+    key="location_text_input",
+    placeholder="Type new location...",
 )
 
 if st.sidebar.button("Update Location"):
-  if entered_query and entered_query != st.session_state["location_query"]:
-    st.session_state["location_query"] = entered_query
-    st.rerun()
+  handle_update()
+  st.rerun()
 
-# Quick location preset buttons below
+# Quick location preset buttons
 st.sidebar.markdown("**Quick Locations:**")
 preset_locs = [
     "Kelly Park West, Merritt Island, FL",
@@ -322,6 +335,7 @@ preset_locs = [
 for loc in preset_locs:
   if st.sidebar.button(loc, key=f"btn_{loc}"):
     st.session_state["location_query"] = loc
+    st.session_state["user_input"] = ""
     st.rerun()
 
 LATITUDE, LONGITUDE, location_name = get_lat_lon_from_query(
