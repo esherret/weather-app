@@ -86,7 +86,6 @@ def get_lat_lon_from_query(query):
     except Exception:
       pass
 
-  # US-restricted free-form search handling cities, states, and landmarks accurately
   url = f"https://nominatim.openstreetmap.org/search?q={requests.utils.quote(cleaned_query)}&countrycodes=us&format=json&limit=1"
   try:
     res = requests.get(url, headers={"User-Agent": "WeatherWindowApp/1.0"}, timeout=5)
@@ -178,7 +177,6 @@ def get_sun_times(lat, lon, date_str):
         rise_utc = datetime.fromisoformat(results["sunrise"])
         set_utc = datetime.fromisoformat(results["sunset"])
         
-        # Automatically handles local time including Daylight Saving Time shifts
         local_tz = ZoneInfo("America/New_York")
         
         dawn_local = dawn_utc.astimezone(local_tz)
@@ -286,9 +284,9 @@ def get_rating_bg_color(val, is_wind=False):
       return "#e6f4ea"
 
 
-# Initialize session state without a default location
+# Initialize session state with the requested default location
 if "location_query" not in st.session_state:
-  st.session_state["location_query"] = None
+  st.session_state["location_query"] = "Kelly Park West, 2455, Merritt Island, Brevard County, Florida, 32952, United States"
 
 # Top layout split into two columns: Title on the left, and Change Location box on the right
 col_title, col_search = st.columns([2, 1.2])
@@ -298,8 +296,6 @@ with col_title:
   if st.session_state["location_query"]:
     _, _, location_name = get_lat_lon_from_query(st.session_state["location_query"])
     st.caption(f"Current Location Context: {location_name}")
-  else:
-    st.caption("Please enter a location to view weather and tide data.")
 
 with col_search:
   def handle_top_location_change():
@@ -315,261 +311,258 @@ with col_search:
       on_change=handle_top_location_change
   )
 
-# Only render data if a location has been entered
-if not st.session_state["location_query"]:
-  st.info("👈 Enter a US address, landmark, city/state, or zip code in the 'Change Location' box above to load weather and tide information.")
+# Render data using the active session state location query
+LATITUDE, LONGITUDE, location_name = get_lat_lon_from_query(st.session_state["location_query"])
+
+if LATITUDE is None or LONGITUDE is None:
+  st.error("Could not find coordinates for that location. Please try a different query.")
 else:
-  LATITUDE, LONGITUDE, location_name = get_lat_lon_from_query(st.session_state["location_query"])
-  
-  if LATITUDE is None or LONGITUDE is None:
-    st.error("Could not find coordinates for that location. Please try adding the state explicitly (e.g., 'Fort Lauderdale, FL').")
+  display_title_location = location_name.split(",")[0] if location_name else "Weather"
+
+  station_id = fetch_nearest_tide_station(LATITUDE, LONGITUDE)
+  periods = fetch_forecast(LATITUDE, LONGITUDE)
+  tides_data = fetch_tides(station_id)
+
+  if not periods:
+    st.error("Failed to retrieve data from the National Weather Service API.")
   else:
-    display_title_location = location_name.split(",")[0] if location_name else "Weather"
+    forecast_map = {}
+    for period in periods:
+      start_time = datetime.fromisoformat(period["startTime"])
+      day_name = start_time.strftime("%A, %b %d")
+      hour = start_time.hour
+      if day_name not in forecast_map:
+        forecast_map[day_name] = {}
+      forecast_map[day_name][hour] = (start_time, period)
 
-    station_id = fetch_nearest_tide_station(LATITUDE, LONGITUDE)
-    periods = fetch_forecast(LATITUDE, LONGITUDE)
-    tides_data = fetch_tides(station_id)
+    windows_def = {
+        "Morning (6AM-9AM)": [6, 7, 8, 9],
+        "Midday (10AM-1PM)": [10, 11, 12, 13],
+        "Afternoon (2PM-5PM)": [14, 15, 16, 17],
+        "Evening (6PM-9PM)": [18, 19, 20, 21],
+    }
 
-    if not periods:
-      st.error("Failed to retrieve data from the National Weather Service API.")
-    else:
-      forecast_map = {}
-      for period in periods:
-        start_time = datetime.fromisoformat(period["startTime"])
-        day_name = start_time.strftime("%A, %b %d")
-        hour = start_time.hour
-        if day_name not in forecast_map:
-          forecast_map[day_name] = {}
-        forecast_map[day_name][hour] = (start_time, period)
+    available_days = list(forecast_map.keys())
+    now = datetime.now(timezone.utc)
 
-      windows_def = {
-          "Morning (6AM-9AM)": [6, 7, 8, 9],
-          "Midday (10AM-1PM)": [10, 11, 12, 13],
-          "Afternoon (2PM-5PM)": [14, 15, 16, 17],
-          "Evening (6PM-9PM)": [18, 19, 20, 21],
-      }
+    for day_name in available_days:
+      day_hours = forecast_map[day_name]
+      sample_dt = list(day_hours.values())[0][0] if day_hours else datetime.now(timezone.utc)
 
-      available_days = list(forecast_map.keys())
-      now = datetime.now(timezone.utc)
+      valid_windows = {}
+      for win_name, hours in windows_def.items():
+        if any(h in day_hours for h in hours):
+          valid_windows[win_name] = hours
 
-      for day_name in available_days:
-        day_hours = forecast_map[day_name]
-        sample_dt = list(day_hours.values())[0][0] if day_hours else datetime.now(timezone.utc)
+      if not valid_windows:
+        continue
 
-        valid_windows = {}
-        for win_name, hours in windows_def.items():
-          if any(h in day_hours for h in hours):
-            valid_windows[win_name] = hours
-
-        if not valid_windows:
+      window_colors = {}
+      for win_name, hours in windows_def.items():
+        win_periods = [day_hours[h] for h in hours if h in day_hours]
+        if not win_periods:
+          window_colors[win_name] = None
           continue
-
-        window_colors = {}
-        for win_name, hours in windows_def.items():
-          win_periods = [day_hours[h] for h in hours if h in day_hours]
-          if not win_periods:
-            window_colors[win_name] = None
+        
+        window_end = win_periods[-1][0].replace(minute=59, second=59)
+        if window_end < now:
+            window_colors[win_name] = "PAST"
             continue
-          
-          window_end = win_periods[-1][0].replace(minute=59, second=59)
-          if window_end < now:
-              window_colors[win_name] = "PAST"
-              continue
 
-          has_red = False
-          has_yellow = False
-          for _, period in win_periods:
-            wind_val = float(period["windSpeed"].split()[0])
+        has_red = False
+        has_yellow = False
+        for _, period in win_periods:
+          wind_val = float(period["windSpeed"].split()[0])
+          pop = period.get("probabilityOfPrecipitation", {}).get("value") or 0
+          short_fc = period["shortForecast"].lower()
+          detailed_fc = period["detailedForecast"].lower()
+          text_blob = f"{short_fc} {detailed_fc}"
+          has_thunder = "thunder" in text_blob or "storm" in text_blob
+          thunder_pct = 80 if has_thunder and "slight chance" not in short_fc else (30 if has_thunder else 0)
+
+          is_red = wind_val > 13.0 or pop > 25 or thunder_pct > 25
+          is_yellow = not is_red and (wind_val > 8.0 or pop > 15 or thunder_pct > 15)
+
+          if is_red:
+            has_red = True
+          elif is_yellow:
+            has_yellow = True
+
+        if has_red:
+          window_colors[win_name] = "#ff4b4b"
+        elif has_yellow:
+          window_colors[win_name] = "#ffeb3b"
+        else:
+          window_colors[win_name] = "#21c354"
+
+      moon_emoji, moon_desc = get_moon_phase_emoji(sample_dt)
+      date_str_api = sample_dt.strftime("%Y-%m-%d")
+      dawn_str, sunrise_str, sunset_str, dusk_str = get_sun_times(LATITUDE, LONGITUDE, date_str_api)
+
+      header_html = f'''
+      <div style="margin-bottom: 12px;">
+        <div style="display: flex; align-items: center; gap: 12px;">
+          <h3 style="margin: 0;"><span title="{moon_desc}" style="margin-right: 6px;">{moon_emoji}</span>{day_name}</h3>
+          <div style="display: flex; gap: 6px;">
+      '''
+      for win_name in windows_def.keys():
+        color = window_colors.get(win_name)
+        if color == "PAST":
+          header_html += f'<div title="{win_name} (Past)" style="width: 16px; height: 16px;"></div>'
+        elif color:
+          header_html += f'<div title="{win_name}" style="width: 16px; height: 16px; background-color: {color}; border: 1px solid rgba(0,0,0,0.2); border-radius: 4px;"></div>'
+        else:
+          header_html += f'<div title="{win_name} (No Data)" style="width: 16px; height: 16px; background-color: #eee; border: 1px solid rgba(0,0,0,0.2); border-radius: 4px;"></div>'
+      header_html += f'''
+          </div>
+        </div>
+        <div style="font-size: 13px; color: #555; margin-top: 4px; margin-left: 36px; font-weight: 500;">
+          First Light: {dawn_str} &nbsp;|&nbsp; Sunrise: {sunrise_str} &nbsp;|&nbsp; Sunset: {sunset_str} &nbsp;|&nbsp; Last Light: {dusk_str}
+        </div>
+      </div>
+      '''
+      st.markdown(header_html, unsafe_allow_html=True)
+
+      for window_name, hours in valid_windows.items():
+        st.markdown(f"**{window_name}**")
+
+        grid_html = '<div style="display: flex; gap: 4px; overflow-x: auto; padding-bottom: 8px;">'
+
+        for h in hours:
+          dummy_dt = sample_dt.replace(hour=h, minute=0, second=0, microsecond=0)
+          time_label = dummy_dt.strftime("%l%p").strip()
+
+          if h in day_hours:
+            _, period = day_hours[h]
+            wind_str = period["windSpeed"]
+            wind_val = float(wind_str.split()[0])
+            wind_dir = period.get("windDirection", "N")
+            pointer_svg = get_wind_svg(wind_dir)
+
             pop = period.get("probabilityOfPrecipitation", {}).get("value") or 0
-            short_fc = period["shortForecast"].lower()
+            short_fc = period["shortForecast"]
             detailed_fc = period["detailedForecast"].lower()
-            text_blob = f"{short_fc} {detailed_fc}"
+            text_blob = f"{short_fc.lower()} {detailed_fc}"
+
+            temp_val = period.get("temperature", "--")
+            temp_unit = period.get("temperatureUnit", "F")
+            cloud_icon = get_cloud_icon(short_fc)
+
             has_thunder = "thunder" in text_blob or "storm" in text_blob
-            thunder_pct = 80 if has_thunder and "slight chance" not in short_fc else (30 if has_thunder else 0)
+            thunder_pct = 80 if has_thunder and "slight chance" not in short_fc.lower() else (30 if has_thunder else 0)
 
             is_red = wind_val > 13.0 or pop > 25 or thunder_pct > 25
             is_yellow = not is_red and (wind_val > 8.0 or pop > 15 or thunder_pct > 15)
 
             if is_red:
-              has_red = True
+              box_border = "#ff4b4b"
             elif is_yellow:
-              has_yellow = True
+              box_border = "#ffeb3b"
+            else:
+              box_border = "#21c354"
+            box_bg = "#fff"
 
-          if has_red:
-            window_colors[win_name] = "#ff4b4b"
-          elif has_yellow:
-            window_colors[win_name] = "#ffeb3b"
-          else:
-            window_colors[win_name] = "#21c354"
+            trigger_icons = ""
+            reasons = []
+            
+            if wind_val > 8.0:
+              reasons.append('<span style="text-shadow: -1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000, 1px 1px 0 #000; color: #ffffff;">🚩</span>')
+            if pop > 15:
+              reasons.append("💧")
+            if thunder_pct > 15:
+              reasons.append('<span style="text-shadow: -1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000, 1px 1px 0 #000; color: #ffeb3b;">⚡</span>')
+            
+            if reasons:
+              trigger_icons = f'<br><span class="box-text" style="vertical-align: middle;">{"".join(reasons)}</span>'
 
-        moon_emoji, moon_desc = get_moon_phase_emoji(sample_dt)
-        date_str_api = sample_dt.strftime("%Y-%m-%d")
-        dawn_str, sunrise_str, sunset_str, dusk_str = get_sun_times(LATITUDE, LONGITUDE, date_str_api)
+            wind_bg = get_rating_bg_color(wind_val, is_wind=True)
+            rain_bg = get_rating_bg_color(pop, is_wind=False)
+            thunder_bg = get_rating_bg_color(thunder_pct, is_wind=False)
 
-        header_html = f'''
-        <div style="margin-bottom: 12px;">
-          <div style="display: flex; align-items: center; gap: 12px;">
-            <h3 style="margin: 0;"><span title="{moon_desc}" style="margin-right: 6px;">{moon_emoji}</span>{day_name}</h3>
-            <div style="display: flex; gap: 6px;">
-        '''
-        for win_name in windows_def.keys():
-          color = window_colors.get(win_name)
-          if color == "PAST":
-            header_html += f'<div title="{win_name} (Past)" style="width: 16px; height: 16px;"></div>'
-          elif color:
-            header_html += f'<div title="{win_name}" style="width: 16px; height: 16px; background-color: {color}; border: 1px solid rgba(0,0,0,0.2); border-radius: 4px;"></div>'
-          else:
-            header_html += f'<div title="{win_name} (No Data)" style="width: 16px; height: 16px; background-color: #eee; border: 1px solid rgba(0,0,0,0.2); border-radius: 4px;"></div>'
-        header_html += f'''
-            </div>
-          </div>
-          <div style="font-size: 13px; color: #555; margin-top: 4px; margin-left: 36px; font-weight: 500;">
-            First Light: {dawn_str} &nbsp;|&nbsp; Sunrise: {sunrise_str} &nbsp;|&nbsp; Sunset: {sunset_str} &nbsp;|&nbsp; Last Light: {dusk_str}
-          </div>
-        </div>
-        '''
-        st.markdown(header_html, unsafe_allow_html=True)
+            rain_level = get_icon_level(pop)
+            thunder_level = get_icon_level(thunder_pct)
 
-        for window_name, hours in valid_windows.items():
-          st.markdown(f"**{window_name}**")
+            rain_icons = "💧" * rain_level if rain_level > 0 else ""
+            thunder_icons = "⚡" * thunder_level if thunder_level > 0 else ""
 
-          grid_html = '<div style="display: flex; gap: 4px; overflow-x: auto; padding-bottom: 8px;">'
+            local_dt = dummy_dt.replace(tzinfo=None)
+            tide_state = "Rising"
+            if tides_data:
+              hour_preds = [(dt, val) for dt, val in tides_data.items() if dt.date() == local_dt.date() and dt.hour == local_dt.hour]
+              found_extreme = None
+              if hour_preds:
+                for dt_p, val_p in hour_preds:
+                  prev_v = tides_data.get(dt_p - timedelta(minutes=6), val_p)
+                  next_v = tides_data.get(dt_p + timedelta(minutes=6), val_p)
+                  if val_p >= prev_v and val_p >= next_v:
+                    found_extreme = "High"
+                    break
+                  elif val_p <= prev_v and val_p <= next_v:
+                    found_extreme = "Low"
+                    break
 
-          for h in hours:
-            dummy_dt = sample_dt.replace(hour=h, minute=0, second=0, microsecond=0)
-            time_label = dummy_dt.strftime("%l%p").strip()
-
-            if h in day_hours:
-              _, period = day_hours[h]
-              wind_str = period["windSpeed"]
-              wind_val = float(wind_str.split()[0])
-              wind_dir = period.get("windDirection", "N")
-              pointer_svg = get_wind_svg(wind_dir)
-
-              pop = period.get("probabilityOfPrecipitation", {}).get("value") or 0
-              short_fc = period["shortForecast"]
-              detailed_fc = period["detailedForecast"].lower()
-              text_blob = f"{short_fc.lower()} {detailed_fc}"
-
-              temp_val = period.get("temperature", "--")
-              temp_unit = period.get("temperatureUnit", "F")
-              cloud_icon = get_cloud_icon(short_fc)
-
-              has_thunder = "thunder" in text_blob or "storm" in text_blob
-              thunder_pct = 80 if has_thunder and "slight chance" not in short_fc.lower() else (30 if has_thunder else 0)
-
-              is_red = wind_val > 13.0 or pop > 25 or thunder_pct > 25
-              is_yellow = not is_red and (wind_val > 8.0 or pop > 15 or thunder_pct > 15)
-
-              if is_red:
-                box_border = "#ff4b4b"
-              elif is_yellow:
-                box_border = "#ffeb3b"
+              if found_extreme:
+                tide_state = found_extreme
               else:
-                box_border = "#21c354"
-              box_bg = "#fff"
-
-              trigger_icons = ""
-              reasons = []
-              
-              if wind_val > 8.0:
-                reasons.append('<span style="text-shadow: -1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000, 1px 1px 0 #000; color: #ffffff;">🚩</span>')
-              if pop > 15:
-                reasons.append("💧")
-              if thunder_pct > 15:
-                reasons.append('<span style="text-shadow: -1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000, 1px 1px 0 #000; color: #ffeb3b;">⚡</span>')
-              
-              if reasons:
-                trigger_icons = f'<br><span class="box-text" style="vertical-align: middle;">{"".join(reasons)}</span>'
-
-              wind_bg = get_rating_bg_color(wind_val, is_wind=True)
-              rain_bg = get_rating_bg_color(pop, is_wind=False)
-              thunder_bg = get_rating_bg_color(thunder_pct, is_wind=False)
-
-              rain_level = get_icon_level(pop)
-              thunder_level = get_icon_level(thunder_pct)
-
-              rain_icons = "💧" * rain_level if rain_level > 0 else ""
-              thunder_icons = "⚡" * thunder_level if thunder_level > 0 else ""
-
-              local_dt = dummy_dt.replace(tzinfo=None)
-              tide_state = "Rising"
-              if tides_data:
-                hour_preds = [(dt, val) for dt, val in tides_data.items() if dt.date() == local_dt.date() and dt.hour == local_dt.hour]
-                found_extreme = None
-                if hour_preds:
-                  for dt_p, val_p in hour_preds:
-                    prev_v = tides_data.get(dt_p - timedelta(minutes=6), val_p)
-                    next_v = tides_data.get(dt_p + timedelta(minutes=6), val_p)
-                    if val_p >= prev_v and val_p >= next_v:
-                      found_extreme = "High"
-                      break
-                    elif val_p <= prev_v and val_p <= next_v:
-                      found_extreme = "Low"
-                      break
-
-                if found_extreme:
-                  tide_state = found_extreme
+                next_hr_dt = local_dt + timedelta(hours=1)
+                v_curr = tides_data.get(local_dt)
+                v_next = tides_data.get(next_hr_dt)
+                if v_curr is not None and v_next is not None:
+                  if v_next < v_curr:
+                    tide_state = "Falling"
+                  else:
+                    tide_state = "Rising"
                 else:
-                  next_hr_dt = local_dt + timedelta(hours=1)
-                  v_curr = tides_data.get(local_dt)
-                  v_next = tides_data.get(next_hr_dt)
-                  if v_curr is not None and v_next is not None:
-                    if v_next < v_curr:
+                  prev_hr_dt = local_dt - timedelta(hours=1)
+                  v_prev = tides_data.get(prev_hr_dt, v_curr)
+                  if v_curr is not None and v_prev is not None:
+                    if v_curr < v_prev:
                       tide_state = "Falling"
                     else:
                       tide_state = "Rising"
-                  else:
-                    prev_hr_dt = local_dt - timedelta(hours=1)
-                    v_prev = tides_data.get(prev_hr_dt, v_curr)
-                    if v_curr is not None and v_prev is not None:
-                      if v_curr < v_prev:
-                        tide_state = "Falling"
-                      else:
-                        tide_state = "Rising"
 
-              if tide_state == "High":
-                tide_display = '<span style="display: inline-block; width: 18px; height: 18px; line-height: 18px; text-align: center; background-color: white; color: red; font-size: 11px; border-radius: 50%; box-shadow: 0 0 2px rgba(0,0,0,0.3);">H</span> <span class="box-text">High</span>'
-              elif tide_state == "Low":
-                tide_display = '<span style="display: inline-block; width: 18px; height: 18px; line-height: 18px; text-align: center; background-color: white; color: green; font-size: 11px; border-radius: 50%; box-shadow: 0 0 2px rgba(0,0,0,0.3);">L</span> <span class="box-text">Low</span>'
-              elif tide_state == "Rising":
-                tide_display = '<span>↗</span> <span class="box-text">Rising</span>'
-              else:
-                tide_display = '<span>↘</span> <span class="box-text">Falling</span>'
-
-              grid_html += f"""
-              <div class="weather-card" style="flex: 1; min-width: 0; background-color: {box_bg}; border: 2px solid {box_border}; border-radius: 6px; padding: 4px; text-align: center; color: black;">
-                <div class="box-time" style="margin-bottom: 4px; background-color: {box_border}; color: black; border-radius: 3px; padding: 2px; border-bottom: 1px solid rgba(0,0,0,0.1);">{time_label}{trigger_icons}</div>
-                <div style="margin-bottom: 4px; background-color: {wind_bg}; border-radius: 4px; padding: 2px;" title="Wind: {wind_val} mph {wind_dir}">
-                  <div class="box-text">{int(wind_val)}mph</div>
-                  <div class="box-text">{pointer_svg}<span class="wind-dir-space"></span><span>{wind_dir}</span></div>
-                </div>
-                <div class="box-text" style="margin-bottom: 3px; background-color: {rain_bg}; border-radius: 4px; padding: 2px;" title="Chance of Rain: {pop}%">{rain_icons} <span>{pop}%</span></div>
-                <div class="box-text" style="margin-bottom: 4px; background-color: {thunder_bg}; border-radius: 4px; padding: 2px;" title="Chance of Thunder: {thunder_pct}%"><span style="text-shadow: -1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000, 1px 1px 0 #000; color: #ffeb3b;">{thunder_icons}</span> <span>{thunder_pct}%</span></div>
-                <div class="box-text" style="margin-bottom: 3px; background-color: #f0f9ff; border-radius: 3px; padding: 2px;" title="Tide">{tide_display}</div>
-                <div class="box-text" style="background-color: #f8fafc; border-radius: 3px; padding: 2px;" title="Temperature & Sky"><span style="font-size: 18px; vertical-align: middle;">{cloud_icon}</span> {temp_val}°{temp_unit}</div>
-              </div>
-              """
+            if tide_state == "High":
+              tide_display = '<span style="display: inline-block; width: 18px; height: 18px; line-height: 18px; text-align: center; background-color: white; color: red; font-size: 11px; border-radius: 50%; box-shadow: 0 0 2px rgba(0,0,0,0.3);">H</span> <span class="box-text">High</span>'
+            elif tide_state == "Low":
+              tide_display = '<span style="display: inline-block; width: 18px; height: 18px; line-height: 18px; text-align: center; background-color: white; color: green; font-size: 11px; border-radius: 50%; box-shadow: 0 0 2px rgba(0,0,0,0.3);">L</span> <span class="box-text">Low</span>'
+            elif tide_state == "Rising":
+              tide_display = '<span>↗</span> <span class="box-text">Rising</span>'
             else:
-              current_utc = datetime.now(timezone.utc)
-              dummy_utc = dummy_dt.astimezone(timezone.utc)
-              
-              if dummy_utc < current_utc:
-                msg = "Data no longer available"
-              else:
-                msg = "Data not yet available"
+              tide_display = '<span>↘</span> <span class="box-text">Falling</span>'
 
-              grid_html += f"""
-              <div class="weather-card" style="flex: 1; min-width: 0; background-color: #f8f9fa; border: 2px solid #d1d5db; border-radius: 6px; padding: 4px; text-align: center; color: #9ca3af;">
-                <div class="box-time" style="margin-bottom: 4px; background-color: #d1d5db; color: #374151; border-radius: 3px; padding: 2px; border-bottom: 1px solid rgba(0,0,0,0.1);">{time_label}</div>
-                <div style="margin-top: 15px; font-size: 9px; font-style: italic; line-height: 1.2;">{msg}</div>
+            grid_html += f"""
+            <div class="weather-card" style="flex: 1; min-width: 0; background-color: {box_bg}; border: 2px solid {box_border}; border-radius: 6px; padding: 4px; text-align: center; color: black;">
+              <div class="box-time" style="margin-bottom: 4px; background-color: {box_border}; color: black; border-radius: 3px; padding: 2px; border-bottom: 1px solid rgba(0,0,0,0.1);">{time_label}{trigger_icons}</div>
+              <div style="margin-bottom: 4px; background-color: {wind_bg}; border-radius: 4px; padding: 2px;" title="Wind: {wind_val} mph {wind_dir}">
+                <div class="box-text">{int(wind_val)}mph</div>
+                <div class="box-text">{pointer_svg}<span class="wind-dir-space"></span><span>{wind_dir}</span></div>
               </div>
-              """
+              <div class="box-text" style="margin-bottom: 3px; background-color: {rain_bg}; border-radius: 4px; padding: 2px;" title="Chance of Rain: {pop}%">{rain_icons} <span>{pop}%</span></div>
+              <div class="box-text" style="margin-bottom: 4px; background-color: {thunder_bg}; border-radius: 4px; padding: 2px;" title="Chance of Thunder: {thunder_pct}%"><span style="text-shadow: -1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000, 1px 1px 0 #000; color: #ffeb3b;">{thunder_icons}</span> <span>{thunder_pct}%</span></div>
+              <div class="box-text" style="margin-bottom: 3px; background-color: #f0f9ff; border-radius: 3px; padding: 2px;" title="Tide">{tide_display}</div>
+              <div class="box-text" style="background-color: #f8fafc; border-radius: 3px; padding: 2px;" title="Temperature & Sky"><span style="font-size: 18px; vertical-align: middle;">{cloud_icon}</span> {temp_val}°{temp_unit}</div>
+            </div>
+            """
+          else:
+            current_utc = datetime.now(timezone.utc)
+            dummy_utc = dummy_dt.astimezone(timezone.utc)
+            
+            if dummy_utc < current_utc:
+              msg = "Data no longer available"
+            else:
+              msg = "Data not yet available"
 
-          grid_html += '</div>'
-          st.html(grid_html)
+            grid_html += f"""
+            <div class="weather-card" style="flex: 1; min-width: 0; background-color: #f8f9fa; border: 2px solid #d1d5db; border-radius: 6px; padding: 4px; text-align: center; color: #9ca3af;">
+              <div class="box-time" style="margin-bottom: 4px; background-color: #d1d5db; color: #374151; border-radius: 3px; padding: 2px; border-bottom: 1px solid rgba(0,0,0,0.1);">{time_label}</div>
+              <div style="margin-top: 15px; font-size: 9px; font-style: italic; line-height: 1.2;">{msg}</div>
+            </div>
+            """
 
-        st.divider()
+        grid_html += '</div>'
+        st.html(grid_html)
+
+      st.divider()
 
     # Legend at the bottom left, with the NWS link placed below it
     st.markdown("""
