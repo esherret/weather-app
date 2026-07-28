@@ -81,15 +81,15 @@ def get_wind_svg(direction_str):
 
 def get_icon_level(pct):
   if pct >= 75:
-      return 5
-  elif pct >= 55:
       return 4
-  elif pct >= 25:
+  elif pct >= 50:
       return 3
-  elif pct >= 15:
+  elif pct >= 25:
       return 2
-  else:
+  elif pct > 0:
       return 1
+  else:
+      return 0
 
 
 def get_rating_bg_color(val, is_wind=False):
@@ -241,8 +241,8 @@ else:
           rain_level = get_icon_level(pop)
           thunder_level = get_icon_level(thunder_pct)
 
-          rain_icons = "💧" * rain_level
-          thunder_icons = "⚡" * thunder_level
+          rain_icons = "💧" * rain_level if rain_level > 0 else "—"
+          thunder_icons = "⚡" * thunder_level if thunder_level > 0 else "—"
 
           grid_html += f"""
           <div style="flex: 1; min-width: 85px; background-color: {box_bg}; border: 2px solid {box_border}; border-radius: 6px; padding: 6px; text-align: center; font-size: 11px; color: black;">
