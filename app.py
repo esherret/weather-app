@@ -268,11 +268,8 @@ else:
           rain_icons = "💧" * rain_level if rain_level > 0 else "—"
           thunder_icons = "⚡" * thunder_level if thunder_level > 0 else "—"
 
-          # Tide height and indicator styling
+          # Tide state determination
           local_dt = dummy_dt.replace(tzinfo=None)
-          tide_val = tides_data.get(local_dt)
-          tide_str = f"{tide_val:.1f} ft" if tide_val is not None else "—"
-
           tide_state = "Rising"
           if tides_data:
             hour_preds = [(dt, val) for dt, val in tides_data.items() if dt.date() == local_dt.date() and dt.hour == local_dt.hour]
@@ -308,15 +305,15 @@ else:
                   else:
                     tide_state = "Rising"
 
-          # Indicator formatting with black arrows
+          # Formatting for High (red H), Low (green L), Rising, and Falling with larger text
           if tide_state == "High":
-            tide_indicator = '<span style="color: green; font-weight: bold;">H</span>'
+            tide_display = '<span style="color: red; font-weight: bold; font-size: 14px;">H</span>'
           elif tide_state == "Low":
-            tide_indicator = '<span style="color: red; font-weight: bold;">L</span>'
+            tide_display = '<span style="color: green; font-weight: bold; font-size: 14px;">L</span>'
           elif tide_state == "Rising":
-            tide_indicator = '<span style="color: black; font-weight: bold;">↗</span>'
+            tide_display = '<span style="color: black; font-weight: bold; font-size: 14px;">Rising</span>'
           else:
-            tide_indicator = '<span style="color: black; font-weight: bold;">↘</span>'
+            tide_display = '<span style="color: black; font-weight: bold; font-size: 14px;">Falling</span>'
 
           grid_html += f"""
           <div style="flex: 1; min-width: 85px; background-color: {box_bg}; border: 2px solid {box_border}; border-radius: 6px; padding: 6px; text-align: center; font-size: 11px; color: black;">
@@ -327,7 +324,7 @@ else:
             </div>
             <div style="margin-bottom: 2px; background-color: {rain_bg}; border-radius: 4px; padding: 2px;" title="Chance of Rain: {pop}%">{rain_icons} <span style="font-size:9px;">{pop}%</span></div>
             <div style="margin-bottom: 4px; background-color: {thunder_bg}; border-radius: 4px; padding: 2px;" title="Chance of Thunder: {thunder_pct}%"><span style="text-shadow: -1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000, 1px 1px 0 #000; color: #ffeb3b;">{thunder_icons}</span> <span style="font-size:9px;">{thunder_pct}%</span></div>
-            <div style="font-size: 9px; color: #0369a1; font-weight: bold; background-color: #f0f9ff; border-radius: 3px; padding: 2px;" title="Tide">🌊 {tide_str} {tide_indicator}</div>
+            <div style="font-size: 10px; font-weight: bold; background-color: #f0f9ff; border-radius: 3px; padding: 3px;" title="Tide">{tide_display}</div>
           </div>
           """
         else:
