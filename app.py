@@ -7,7 +7,7 @@ st.set_page_config(
     page_title="Ed's Weather Yak", page_icon="🌤️", layout="wide"
 )
 
-# Custom CSS for sidebar spacing, wider sidebar buttons, stacking input/button, and desktop widening.
+# Custom CSS for sidebar spacing, wider buttons, vertical gap between input/button, and desktop widening.
 st.markdown("""
 <style>
     .weather-card * {
@@ -33,14 +33,18 @@ st.markdown("""
         margin-bottom: 1rem !important;
     }
 
-    /* Make sidebar buttons wider */
+    /* Make sidebar buttons wider and add spacing between each button */
+    section[data-testid="stSidebar"] div.stButton {
+        margin-bottom: 0.6rem !important;
+    }
+
     section[data-testid="stSidebar"] div.stButton > button {
         width: 100% !important;
     }
 
-    /* Reduce vertical gap between stacked elements in the input section */
+    /* Add space between the text box and the Go button */
     div.stButton {
-        margin-top: -1.2rem !important;
+        margin-top: 0.8rem !important;
     }
 
     @media (max-width: 767px) {
@@ -122,7 +126,7 @@ DEFAULT_ADDRESS = "Kelly Park West, 2455, Merritt Island, Brevard County, Florid
 
 # Preset locations mapping button display labels to exact search queries
 PRESET_LOCATIONS = {
-    "Kelly Park West, Merritt Island, FL": DEFAULT_ADDRESS,
+    "Kelly Park, Merritt Island, FL": DEFAULT_ADDRESS,
     "Port Canaveral, FL": "Port Canaveral, Brevard County, Florida, 32920, United States",
     "Titusville, FL": "Titusville, Brevard County, Florida, United States",
     "Cocoa Beach, FL": "Cocoa Beach, Brevard County, Florida, United States",
@@ -136,7 +140,7 @@ PRESET_LOCATIONS = {
 def get_lat_lon_from_query(query):
   cleaned_query = query.strip()
   
-  if "Kelly Park West" in cleaned_query or cleaned_query == DEFAULT_ADDRESS:
+  if "Kelly Park West" in cleaned_query or "Kelly Park" in cleaned_query or cleaned_query == DEFAULT_ADDRESS:
     return 28.3751, -80.6865, DEFAULT_ADDRESS
   
   if cleaned_query.isdigit() and len(cleaned_query) == 5:
@@ -349,10 +353,10 @@ def get_rating_bg_color(val, is_wind=False):
 
 # Initialize session state for active query
 if "location_query" not in st.session_state:
-  st.session_state["location_query"] = DEFAULT_ADDRESS
+  st.session_state["location_query"] = "Kelly Park, Merritt Island, FL"
 
 if "top_location_input" not in st.session_state:
-  st.session_state["top_location_input"] = DEFAULT_ADDRESS
+  st.session_state["top_location_input"] = "Kelly Park, Merritt Island, FL"
 
 # Sidebar configuration for quick location links
 st.sidebar.header("Quick Locations")
@@ -365,7 +369,7 @@ for label, query in PRESET_LOCATIONS.items():
 # Page title pushed to the very top
 st.markdown("## Ed's Weather Yak")
 
-# Stack text input and Go button vertically with minimal gap
+# Stack text input and Go button vertically with proper spacing
 def handle_top_location_change():
   new_loc = st.session_state.get("top_location_input", "").strip()
   if new_loc:
