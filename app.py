@@ -18,6 +18,15 @@ st.markdown("""
         padding-top: 3.5rem !important;
     }
 
+    /* Tighten vertical gap for stacked input and button on mobile */
+    [data-testid="column"] {
+        gap: 0rem !important;
+    }
+    
+    div.stButton > button {
+        margin-top: -15px !important;
+    }
+
     @media (min-width: 768px) {
         .block-container {
             max-width: 95rem;
@@ -44,6 +53,10 @@ st.markdown("""
         .wind-dir-space {
             display: inline-block;
             width: 14px;
+        }
+        
+        div.stButton > button {
+            margin-top: 27px !important;
         }
     }
 
@@ -320,8 +333,6 @@ col_title, col_search = st.columns([2, 1.4])
 
 with col_title:
   st.title("Ed's Weather Yak")
-  _, _, location_name = get_lat_lon_from_query(st.session_state["location_query"])
-  st.caption(f"Current Location Context: {location_name}")
 
 with col_search:
   subcol1, subcol2 = st.columns([1.6, 1])
@@ -332,7 +343,7 @@ with col_search:
         st.session_state["location_query"] = new_loc
 
     st.text_input(
-        "Change Location:",
+        "Location:",
         value=st.session_state["location_query"],
         key="top_location_input",
         placeholder="Address or zip...",
@@ -340,8 +351,6 @@ with col_search:
         on_change=handle_top_location_change
     )
   with subcol2:
-    st.write("") # spacing adjustment
-    st.write("") 
     if st.button("Change"):
       new_loc = st.session_state.get("top_location_input", "").strip()
       if new_loc:
