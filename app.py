@@ -32,6 +32,29 @@ def fetch_forecast():
   return forecast_response.json()["properties"]["periods"]
 
 
+@st.cache_data(ttl=3600)
+def fetch_tides():
+  today_str = datetime.now().strftime("%Y%m%d")
+  url = (
+      f"https://api.tidesandcurrents.noaa.gov/api/prod/datagetter?"
+      f"begin_date={today_str}&range=168&station=8721604&product=predictions"
+      f"&datum=MLLW&units=english&time_zone=lst_ldt&format=json"
+  )
+  try:
+    res = requests.get(url, timeout=5)
+    if res.status_code == 200:
+      data = res.json()
+      predictions = data.get("predictions", [])
+      tide_map = {}
+      for p in predictions:
+        dt_obj = datetime.strptime(p["t"], "%Y-%m-%d %H:%M")
+        tide_map[dt_obj] = float(p["v"])
+      return tide_map
+  except Exception:
+    pass
+  return {}
+
+
 def get_moon_phase_emoji(dt):
   known_new_moon = datetime(2024, 1, 11, tzinfo=timezone.utc)
   lunar_cycle = 29.5305877057
@@ -109,9 +132,10 @@ def get_rating_bg_color(val, is_wind=False):
       return "#e6f4ea"
 
 
-st.title("🌤️ Weather Windows (Port Canaveral Area)")
+st.title("🌤️ Weather & Tide Windows (Port Canaveral Station ID: 8721604)")
 
 periods = fetch_forecast()
+tides_data = fetch_tides()
 
 if not periods:
   st.error("Failed to retrieve data from the National Weather Service API.")
@@ -244,6 +268,11 @@ else:
           rain_icons = "💧" * rain_level if rain_level > 0 else "—"
           thunder_icons = "⚡" * thunder_level if thunder_level > 0 else "—"
 
+          # Look up NOAA tide height for this specific hour if available
+          local_dt = dummy_dt.replace(tzinfo=None)
+          tide_val = tides_data.get(local_dt)
+          tide_str = f"{tide_val:.1f} ft" if tide_val is not None else "—"
+
           grid_html += f"""
           <div style="flex: 1; min-width: 85px; background-color: {box_bg}; border: 2px solid {box_border}; border-radius: 6px; padding: 6px; text-align: center; font-size: 11px; color: black;">
             <div style="font-weight: bold; margin-bottom: 4px; border-bottom: 1px solid rgba(0,0,0,0.1);">{time_label}</div>
@@ -252,7 +281,8 @@ else:
               <div>{pointer_svg}<span style="font-size: 9px;">{wind_dir}</span></div>
             </div>
             <div style="margin-bottom: 2px; background-color: {rain_bg}; border-radius: 4px; padding: 2px;" title="Chance of Rain: {pop}%">{rain_icons} <span style="font-size:9px;">{pop}%</span></div>
-            <div style="margin-bottom: 4px; background-color: {thunder_bg}; border-radius: 4px; padding: 2px;" title="Chance of Thunder: {thunder_pct}%"><span style="text-shadow: -1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000, 1px 1px 0 #000; color: #ffeb3b;">{thunder_icons}</span> <span style="font-size:9px;">{thunder_pct}%</span></div>
+            <div style="margin-bottom: 2px; background-color: {thunder_bg}; border-radius: 4px; padding: 2px;" title="Chance of Thunder: {thunder_pct}%"><span style="text-shadow: -1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000, 1px 1px 0 #000; color: #ffeb3b;">{thunder_icons}</span> <span style="font-size:9px;">{thunder_pct}%</span></div>
+            <div style="font-size: 9px; color: #0369a1; font-weight: bold; background-color: #f0f9ff; border-radius: 3px; padding: 2px;" title="Tide Height">🌊 {tide_str}</div>
           </div>
           """
         else:
