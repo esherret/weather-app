@@ -6,13 +6,14 @@ st.set_page_config(
     page_title="Weather Window Monitor", page_icon="🌤️", layout="wide"
 )
 
-# Custom CSS targeting computer/tablet viewports to unify text sizes for wind speed, wind direction,
-# precipitation percentage, thunder percentage, and tide description, while keeping wind speed unbolded everywhere.
+# Custom CSS to handle spacing between wind icon and text, bold all text in boxes,
+# make time larger than other text across all sizes, match temperature text size,
+# and scale specific elements up on computers/tablets.
 st.markdown("""
 <style>
-    /* Remove bolding from wind speed across all platforms */
-    .wind-speed-val {
-        font-weight: normal !important;
+    /* Ensure all text inside the weather cards is bolded */
+    .weather-card * {
+        font-weight: bold !important;
     }
 
     @media (min-width: 768px) {
@@ -32,9 +33,22 @@ st.markdown("""
             font-size: 1.8rem !important;
         }
 
-        /* Unified desktop/tablet font size (~1.5x) for windspeed, wind direction, precip %, thunder %, and tide description */
-        .desktop-unified-text {
+        /* Scaled up (~50% larger) for desktop/tablet */
+        .box-time {
+            font-size: 1.5rem !important;
+        }
+        .box-text {
             font-size: 1.15rem !important;
+        }
+    }
+
+    @media (max-width: 767px) {
+        /* Standard sizing for iPhone */
+        .box-time {
+            font-size: 1.15rem !important;
+        }
+        .box-text {
+            font-size: 0.8rem !important;
         }
     }
 </style>
@@ -214,7 +228,7 @@ def get_wind_svg(direction_str):
       "NNW": 157.5,
   }
   deg = degrees.get(direction_str.upper(), 0)
-  return f'<span style="display: inline-block; transform: rotate({deg}deg); width: 16px; height: 16px; line-height: 16px; text-align: center; vertical-align: middle; margin-right: 4px;">⬆️</span>'
+  return f'<span style="display: inline-block; transform: rotate({deg}deg); width: 16px; height: 16px; line-height: 16px; text-align: center; vertical-align: middle; margin-right: 8px;">⬆️</span>'
 
 
 def get_icon_level(pct):
@@ -475,25 +489,25 @@ else:
                     tide_state = "Rising"
 
           if tide_state == "High":
-            tide_display = '<span style="display: inline-block; width: 24px; height: 24px; line-height: 24px; text-align: center; background-color: white; color: red; font-weight: bold; font-size: 14px; border-radius: 50%; box-shadow: 0 0 2px rgba(0,0,0,0.3);">H</span> <span class="desktop-unified-text" style="font-size: 11px;">High</span>'
+            tide_display = '<span style="display: inline-block; width: 24px; height: 24px; line-height: 24px; text-align: center; background-color: white; color: red; font-size: 14px; border-radius: 50%; box-shadow: 0 0 2px rgba(0,0,0,0.3);">H</span> <span class="box-text">High</span>'
           elif tide_state == "Low":
-            tide_display = '<span style="display: inline-block; width: 24px; height: 24px; line-height: 24px; text-align: center; background-color: white; color: green; font-weight: bold; font-size: 14px; border-radius: 50%; box-shadow: 0 0 2px rgba(0,0,0,0.3);">L</span> <span class="desktop-unified-text" style="font-size: 11px;">Low</span>'
+            tide_display = '<span style="display: inline-block; width: 24px; height: 24px; line-height: 24px; text-align: center; background-color: white; color: green; font-size: 14px; border-radius: 50%; box-shadow: 0 0 2px rgba(0,0,0,0.3);">L</span> <span class="box-text">Low</span>'
           elif tide_state == "Rising":
-            tide_display = '<span style="font-weight: bold; font-size: 20px;">↗</span>&nbsp;&nbsp;<span class="desktop-unified-text" style="font-size: 11px;">Rising</span>'
+            tide_display = '<span style="font-size: 20px;">↗</span>&nbsp;&nbsp;<span class="box-text">Rising</span>'
           else:
-            tide_display = '<span style="font-weight: bold; font-size: 20px;">↘</span>&nbsp;&nbsp;<span class="desktop-unified-text" style="font-size: 11px;">Falling</span>'
+            tide_display = '<span style="font-size: 20px;">↘</span>&nbsp;&nbsp;<span class="box-text">Falling</span>'
 
           grid_html += f"""
-          <div style="flex: 1; min-width: 100px; background-color: {box_bg}; border: 2px solid {box_border}; border-radius: 8px; padding: 8px; text-align: center; font-size: 13px; color: black;">
-            <div style="font-weight: bold; font-size: 14px; margin-bottom: 6px; border-bottom: 1px solid rgba(0,0,0,0.1);">{time_label}</div>
+          <div class="weather-card" style="flex: 1; min-width: 100px; background-color: {box_bg}; border: 2px solid {box_border}; border-radius: 8px; padding: 8px; text-align: center; color: black;">
+            <div class="box-time" style="margin-bottom: 6px; border-bottom: 1px solid rgba(0,0,0,0.1);">{time_label}</div>
             <div style="margin-bottom: 6px; background-color: {wind_bg}; border-radius: 5px; padding: 4px;" title="Wind: {wind_val} mph {wind_dir}">
-              <div class="desktop-unified-text wind-speed-val" style="font-size: 11px;">{int(wind_val)}mph</div>
-              <div class="desktop-unified-text" style="font-size: 11px;">{pointer_svg}<span>{wind_dir}</span></div>
+              <div class="box-text">{int(wind_val)}mph</div>
+              <div class="box-text">{pointer_svg}<span>{wind_dir}</span></div>
             </div>
-            <div style="margin-bottom: 4px; background-color: {rain_bg}; border-radius: 5px; padding: 4px;" title="Chance of Rain: {pop}%">{rain_icons} <span class="desktop-unified-text" style="font-size: 11px; font-weight: 500;">{pop}%</span></div>
-            <div style="margin-bottom: 6px; background-color: {thunder_bg}; border-radius: 5px; padding: 4px;" title="Chance of Thunder: {thunder_pct}%"><span style="text-shadow: -1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000, 1px 1px 0 #000; color: #ffeb3b;">{thunder_icons}</span> <span class="desktop-unified-text" style="font-size: 11px; font-weight: 500;">{thunder_pct}%</span></div>
-            <div style="margin-bottom: 4px; font-size: 12px; background-color: #f0f9ff; border-radius: 4px; padding: 4px;" title="Tide">{tide_display}</div>
-            <div style="font-size: 12px; font-weight: bold; background-color: #f8fafc; border-radius: 4px; padding: 4px;" title="Temperature & Sky"><span style="font-size: 24px; vertical-align: middle;">{cloud_icon}</span> {temp_val}°{temp_unit}</div>
+            <div class="box-text" style="margin-bottom: 4px; background-color: {rain_bg}; border-radius: 5px; padding: 4px;" title="Chance of Rain: {pop}%">{rain_icons} <span>{pop}%</span></div>
+            <div class="box-text" style="margin-bottom: 6px; background-color: {thunder_bg}; border-radius: 5px; padding: 4px;" title="Chance of Thunder: {thunder_pct}%"><span style="text-shadow: -1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000, 1px 1px 0 #000; color: #ffeb3b;">{thunder_icons}</span> <span>{thunder_pct}%</span></div>
+            <div class="box-text" style="margin-bottom: 4px; background-color: #f0f9ff; border-radius: 4px; padding: 4px;" title="Tide">{tide_display}</div>
+            <div class="box-text" style="background-color: #f8fafc; border-radius: 4px; padding: 4px;" title="Temperature & Sky"><span style="font-size: 24px; vertical-align: middle;">{cloud_icon}</span> {temp_val}°{temp_unit}</div>
           </div>
           """
         else:
@@ -506,8 +520,8 @@ else:
             msg = "Data not yet available"
 
           grid_html += f"""
-          <div style="flex: 1; min-width: 100px; background-color: #f8f9fa; border: 2px solid #d1d5db; border-radius: 8px; padding: 8px; text-align: center; font-size: 13px; color: #9ca3af;">
-            <div style="font-weight: bold; font-size: 14px; margin-bottom: 6px; border-bottom: 1px solid rgba(0,0,0,0.1);">{time_label}</div>
+          <div class="weather-card" style="flex: 1; min-width: 100px; background-color: #f8f9fa; border: 2px solid #d1d5db; border-radius: 8px; padding: 8px; text-align: center; color: #9ca3af;">
+            <div class="box-time" style="margin-bottom: 6px; border-bottom: 1px solid rgba(0,0,0,0.1);">{time_label}</div>
             <div style="margin-top: 25px; font-size: 11px; font-style: italic; line-height: 1.3;">{msg}</div>
           </div>
           """
