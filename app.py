@@ -94,16 +94,7 @@ def get_lat_lon_from_query(query, user_lat=28.3, user_lon=-80.6):
   except Exception:
     pass
   
-  if not (cleaned_query.isdigit() and len(cleaned_query) == 5):
-    url_fallback = f"https://nominatim.openstreetmap.org/search?q={requests.utils.quote(cleaned_query + ', Merritt Island, FL')} &format=json&limit=1"
-    try:
-      res = requests.get(url_fallback, headers={"User-Agent": "WeatherWindowApp/1.0"}, timeout=5)
-      if res.status_code == 200 and res.json():
-        data = res.json()[0]
-        return float(data["lat"]), float(data["lon"]), data.get("display_name", query)
-    except Exception:
-      pass
-
+  # Absolute fallback if API lookups fail completely
   return 28.3751, -80.6865, "Kelly Park West, Merritt Island, FL"
 
 
@@ -299,17 +290,16 @@ if "location_query" not in st.session_state:
 
 
 def handle_update():
-  val = st.session_state.get("location_input", "").strip()
+  val = st.session_state.get("location_text_input", "").strip()
   if val:
     st.session_state["location_query"] = val
-    st.session_state["location_input"] = ""
 
 
-# Sidebar configuration using widget callback state management
+# Sidebar configuration for location updating
 st.sidebar.header("Location Settings")
 st.sidebar.text_input(
     "Enter ZIP, Address, or Landmark",
-    key="location_input",
+    key="location_text_input",
     placeholder="Type new location...",
 )
 
@@ -330,7 +320,6 @@ preset_locs = [
 for loc in preset_locs:
   if st.sidebar.button(loc, key=f"btn_{loc}"):
     st.session_state["location_query"] = loc
-    st.session_state["location_input"] = ""
     st.rerun()
 
 LATITUDE, LONGITUDE, location_name = get_lat_lon_from_query(
