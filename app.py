@@ -6,26 +6,25 @@ st.set_page_config(
     page_title="Weather Window Monitor", page_icon="🌤️", layout="wide"
 )
 
-# Custom CSS to increase text sizes and expand container width for desktops/tablets
+# Custom CSS targeting computer and tablet viewports via media queries, leaving iPhone untouched
 st.markdown("""
 <style>
-    /* Expand main container width */
-    .block-container {
-        max-width: 95rem;
-        padding-top: 2rem;
-        padding-right: 2rem;
-        padding-left: 2rem;
-        padding-bottom: 2rem;
-    }
-    
-    /* Increase base font size across the app for computer and tablet */
-    html, body, [class*="css"] {
-        font-size: 16px;
-    }
-    
-    /* Enhance specific text sizing for readability */
-    h3 {
-        font-size: 1.5rem !important;
+    @media (min-width: 768px) {
+        .block-container {
+            max-width: 95rem;
+            padding-top: 2rem;
+            padding-right: 2rem;
+            padding-left: 2rem;
+            padding-bottom: 2rem;
+        }
+        
+        html, body, [class*="css"] {
+            font-size: 18px !important;
+        }
+        
+        h3 {
+            font-size: 1.8rem !important;
+        }
     }
 </style>
 """, unsafe_allow_html=True)
