@@ -72,20 +72,6 @@ HEADERS = {
 
 
 @st.cache_data(ttl=3600)
-def get_location_from_ip():
-  try:
-    res = requests.get("https://ipapi.co/json", timeout=3)
-    if res.status_code == 200:
-      data = res.json()
-      postal = data.get("postal")
-      if postal:
-        return postal
-  except Exception:
-    pass
-  return "32953"
-
-
-@st.cache_data(ttl=3600)
 def get_lat_lon_from_query(query, user_lat=28.3, user_lon=-80.6):
   cleaned_query = query.strip()
   
@@ -118,7 +104,7 @@ def get_lat_lon_from_query(query, user_lat=28.3, user_lon=-80.6):
     except Exception:
       pass
 
-  return 28.4021, -80.6629, "Merritt Island, FL (Default)"
+  return 28.3751, -80.6865, "Kelly Park West, Merritt Island, FL"
 
 
 @st.cache_data(ttl=1800)
@@ -307,9 +293,9 @@ def get_rating_bg_color(val, is_wind=False):
       return "#e6f4ea"
 
 
-# Initialize session state for location query.
+# Initialize session state defaulting to Kelly Park West, Merritt Island, FL
 if "location_query" not in st.session_state:
-  st.session_state["location_query"] = get_location_from_ip()
+  st.session_state["location_query"] = "Kelly Park West, Merritt Island, FL"
 
 # Sidebar configuration using explicit callback / explicit submit state handling
 st.sidebar.header("Location Settings")
@@ -322,55 +308,28 @@ if submit_button:
     st.session_state["location_query"] = entered_query
     st.rerun()
 
-# Session state debug info added below update location in the sidebar
-st.sidebar.markdown("---")
-st.sidebar.subheader("Session State Debug")
-st.sidebar.write(st.session_state)
+# Quick location preset links in the sidebar
+st.sidebar.markdown("**Quick Locations:**")
+preset_locs = [
+    "Kelly Park West, Merritt Island, FL",
+    "Port Canaveral, FL",
+    "Haulover Canal, Mims, FL",
+    "1000 Islands, Cocoa Beach, FL",
+    "Cape May Harbor",
+    "Cape May Ferry Terminal",
+]
+
+for loc in preset_locs:
+  if st.sidebar.button(loc, key=f"btn_{loc}"):
+    st.session_state["location_query"] = loc
+    st.rerun()
 
 LATITUDE, LONGITUDE, location_name = get_lat_lon_from_query(st.session_state["location_query"])
 
 display_title_location = location_name.split(",")[0] if location_name else "Weather"
 
-# Top layout containing title/caption on the left and comprehensive legends on the right
-top_col1, top_col2 = st.columns([2, 3])
-with top_col1:
-  st.title(f"{display_title_location} Weather")
-  st.caption(f"Current Location Context: {location_name}")
-
-with top_col2:
-  st.markdown("""
-    <div style="display: flex; justify-content: flex-end; align-items: flex-start; height: 100%; padding-top: 5px;">
-      <div style="display: flex; flex-direction: column; gap: 4px; font-size: 11px; font-weight: bold; background: #f8fafc; padding: 6px 10px; border: 1px solid #d1d5db; border-radius: 6px; box-shadow: 0 1px 2px rgba(0,0,0,0.05);">
-        <div style="display: flex; align-items: center; gap: 8px;">
-          <span style="color: #4b5563;">Wind Ranges:</span>
-          <div style="display: flex; align-items: center; gap: 3px;">
-            <span style="display: inline-block; width: 10px; height: 10px; background-color: #e6f4ea; border: 1px solid #21c354; border-radius: 2px;"></span>
-            <span>≤8</span>
-          </div>
-          <div style="display: flex; align-items: center; gap: 3px;">
-            <span style="display: inline-block; width: 10px; height: 10px; background-color: #fffacc; border: 1px solid #ffeb3b; border-radius: 2px;"></span>
-            <span>8.1–13</span>
-          </div>
-          <div style="display: flex; align-items: center; gap: 3px;">
-            <span style="display: inline-block; width: 10px; height: 10px; background-color: #ffdddd; border: 1px solid #ff4b4b; border-radius: 2px;"></span>
-            <span>>13 mph</span>
-          </div>
-        </div>
-        <div style="display: flex; align-items: center; gap: 8px;">
-          <span style="color: #4b5563;">Rain (%):</span>
-          <span>💧: 1–24%</span>
-          <span>💧💧: 25–49%</span>
-          <span>💧💧💧: ≥50%</span>
-        </div>
-        <div style="display: flex; align-items: center; gap: 8px;">
-          <span style="color: #4b5563;">Thunder (%):</span>
-          <span>⚡: 1–24%</span>
-          <span>⚡⚡: 25–49%</span>
-          <span>⚡⚡⚡: ≥50%</span>
-        </div>
-      </div>
-    </div>
-  """, unsafe_allow_html=True)
+st.title(f"{display_title_location} Weather")
+st.caption(f"Current Location Context: {location_name}")
 
 station_id = fetch_nearest_tide_station(LATITUDE, LONGITUDE)
 periods = fetch_forecast(LATITUDE, LONGITUDE)
@@ -527,7 +486,7 @@ else:
             reasons.append('<span style="text-shadow: -1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000, 1px 1px 0 #000; color: #ffeb3b;">⚡</span>')
           
           if reasons:
-            trigger_icons = f' <span class="box-text" style="margin-left: 4px; vertical-align: middle;">{"".join(reasons)}</span>'
+            trigger_icons = f'<br><span class="box-text" style="vertical-align: middle;">{"".join(reasons)}</span>'
 
           wind_bg = get_rating_bg_color(wind_val, is_wind=True)
           rain_bg = get_rating_bg_color(pop, is_wind=False)
