@@ -308,8 +308,31 @@ LATITUDE, LONGITUDE, location_name = get_lat_lon_from_query(st.session_state["lo
 
 display_title_location = location_name.split(",")[0] if location_name else "Weather"
 
-st.title(f"{display_title_location} Weather")
-st.caption(f"Current Location Context: {location_name}")
+# Top layout containing title/caption on the left and wind speed legend on the right
+top_col1, top_col2 = st.columns([3, 2])
+with top_col1:
+  st.title(f"{display_title_location} Weather")
+  st.caption(f"Current Location Context: {location_name}")
+
+with top_col2:
+  st.markdown("""
+    <div style="display: flex; justify-content: flex-end; align-items: center; height: 100%; padding-top: 10px;">
+      <div style="display: flex; gap: 6px; font-size: 12px; font-weight: bold; background: #f8fafc; padding: 6px 10px; border: 1px solid #d1d5db; border-radius: 6px; box-shadow: 0 1px 2px rgba(0,0,0,0.05);">
+        <div style="display: flex; align-items: center; gap: 3px;">
+          <span style="display: inline-block; width: 12px; height: 12px; background-color: #e6f4ea; border: 1px solid #21c354; border-radius: 2px;"></span>
+          <span>≤ 8 mph</span>
+        </div>
+        <div style="display: flex; align-items: center; gap: 3px; margin-left: 6px;">
+          <span style="display: inline-block; width: 12px; height: 12px; background-color: #fffacc; border: 1px solid #ffeb3b; border-radius: 2px;"></span>
+          <span>8.1–13 mph</span>
+        </div>
+        <div style="display: flex; align-items: center; gap: 3px; margin-left: 6px;">
+          <span style="display: inline-block; width: 12px; height: 12px; background-color: #ffdddd; border: 1px solid #ff4b4b; border-radius: 2px;"></span>
+          <span>> 13 mph</span>
+        </div>
+      </div>
+    </div>
+  """, unsafe_allow_html=True)
 
 st.markdown(
     f"📊 [View official National Weather Service forecast for this area]"
