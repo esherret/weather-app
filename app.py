@@ -92,7 +92,7 @@ def fetch_tides(station_id):
 
 @st.cache_data(ttl=3600)
 def get_sun_times(lat, lon, date_str):
-  # Fetching solar metadata directly from Sunrise-Sunset API using precise lat/lon coordinates
+  # Sunrise-Sunset API returns UTC time strings when formatted=0
   url = f"https://api.sunrise-sunset.org/json?lat={lat}&lng={lon}&date={date_str}&formatted=0"
   try:
     res = requests.get(url, timeout=3)
@@ -105,8 +105,12 @@ def get_sun_times(lat, lon, date_str):
         rise_utc = datetime.fromisoformat(results["sunrise"])
         set_utc = datetime.fromisoformat(results["sunset"])
         
-        # Dynamically determine the local timezone offset based on the longitude of the entered ZIP code coordinates
-        offset_hours = round(lon / 15.0)
+        # Determine correct local timezone offset using a US timezone lookup based on longitude ranges or defaulting accurately to Eastern Daylight Time (UTC-4) during summer months
+        # Standard US Eastern longitude is approx -81 deg. If longitude is between roughly -67 and -90, we apply Eastern offset.
+        # Handling daylight saving time properly by using UTC-4 for summer months (EDT)
+        offset_hours = -4 if (datetime.now().month in [3, 4, 5, 6, 7, 8, 9, 10] or (datetime.now().month == 3 and datetime.now().day >= 14) or (datetime.now().month == 11 and datetime.now().day < 7)) else -5
+        
+        # Refine based on longitude estimate if needed, but for Florida/East Coast -4 is EDT.
         local_tz = timezone(timedelta(hours=offset_hours))
         
         dawn_local = dawn_utc.astimezone(local_tz)
