@@ -7,7 +7,7 @@ st.set_page_config(
     page_title="Ed's Weather Yak", page_icon="🌤️", layout="wide"
 )
 
-# Custom CSS to force 150px input width and remove header whitespace.
+# Custom CSS to force 50px input width and remove header whitespace.
 st.markdown("""
 <style>
     .weather-card * {
@@ -23,9 +23,9 @@ st.markdown("""
         display: none !important;
     }
 
-    /* Force location text box to be 150px wide */
+    /* Force location text box to be 50px wide */
     div[data-baseweb="input"] {
-        width: 150px !important;
+        width: 50px !important;
     }
 
     @media (min-width: 768px) {
@@ -75,14 +75,14 @@ st.markdown("""
         
         /* Inline alignment for iPhone */
         [data-testid="column"]:nth-of-type(1) {
-            width: 58% !important;
-            flex: 58% !important;
-            min-width: 58% !important;
+            width: 45% !important;
+            flex: 45% !important;
+            min-width: 45% !important;
         }
         [data-testid="column"]:nth-of-type(2) {
-            width: 42% !important;
-            flex: 42% !important;
-            min-width: 42% !important;
+            width: 55% !important;
+            flex: 55% !important;
+            min-width: 55% !important;
         }
         
         div.stButton > button {
@@ -347,8 +347,8 @@ for label, query in PRESET_LOCATIONS.items():
 # Page title pushed to the very top
 st.markdown("## Ed's Weather Yak")
 
-# 150px input box and change button placed strictly on the same line
-col_input, col_btn = st.columns([150, 80])
+# 50px input box and change button placed strictly on the same line
+col_input, col_btn = st.columns([50, 80])
 
 with col_input:
   def handle_top_location_change():
