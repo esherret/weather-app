@@ -246,7 +246,7 @@ def get_wind_svg(direction_str):
       "NNW": 157.5,
   }
   deg = degrees.get(direction_str.upper(), 0)
-  return f'<span style="display: inline-block; transform: rotate({deg}deg); width: 14px; height: 14px; line-height: 14px; text-align: center; vertical-align: middle; margin-right: 4px;">🧭</span>'
+  return f'<span style="display: inline-block; transform: rotate({deg}deg); width: 14px; height: 14px; line-height: 14px; text-align: center; vertical-align: middle; margin-right: 4px;">⬆️</span>'
 
 
 def get_icon_level(pct):
@@ -464,7 +464,7 @@ else:
           if is_red or is_yellow:
             reasons = []
             if wind_val > (13.0 if is_red else 8.0):
-              reasons.append("🧭")
+              reasons.append("⬆️")
             if pop > (25 if is_red else 15):
               reasons.append("💧")
             if thunder_pct > (25 if is_red else 15):
@@ -533,7 +533,7 @@ else:
             <div class="box-time" style="margin-bottom: 4px; background-color: {box_border}; color: black; border-radius: 3px; padding: 2px; border-bottom: 1px solid rgba(0,0,0,0.1);">{time_label}{trigger_icons}</div>
             <div style="margin-bottom: 4px; background-color: {wind_bg}; border-radius: 4px; padding: 2px;" title="Wind: {wind_val} mph {wind_dir}">
               <div class="box-text">{int(wind_val)}mph</div>
-              <div class="box-text">🧭<span class="wind-dir-space"></span><span>{wind_dir}</span></div>
+              <div class="box-text">{pointer_svg}<span class="wind-dir-space"></span><span>{wind_dir}</span></div>
             </div>
             <div class="box-text" style="margin-bottom: 3px; background-color: {rain_bg}; border-radius: 4px; padding: 2px;" title="Chance of Rain: {pop}%">{rain_icons} <span>{pop}%</span></div>
             <div class="box-text" style="margin-bottom: 4px; background-color: {thunder_bg}; border-radius: 4px; padding: 2px;" title="Chance of Thunder: {thunder_pct}%"><span style="text-shadow: -1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000, 1px 1px 0 #000; color: #ffeb3b;">{thunder_icons}</span> <span>{thunder_pct}%</span></div>
