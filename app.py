@@ -283,36 +283,9 @@ def get_rating_bg_color(val, is_wind=False):
       return "#e6f4ea"
 
 
-# Initialize session state variables
+# Initialize session state defaulting to Kelly Park West, Merritt Island, FL
 if "location_query" not in st.session_state:
   st.session_state["location_query"] = "Kelly Park West, Merritt Island, FL"
-
-# Sidebar configuration using a form so hitting enter or clicking Update Location works reliably
-st.sidebar.header("Location Settings")
-with st.sidebar.form(key="location_form"):
-  entered_query = st.text_input("Enter ZIP, Address, or Landmark", value=st.session_state["location_query"])
-  submit_button = st.form_submit_button(label="Update Location")
-
-if submit_button:
-  if entered_query:
-    st.session_state["location_query"] = entered_query
-    st.rerun()
-
-# Quick location preset buttons
-st.sidebar.markdown("**Quick Locations:**")
-preset_locs = [
-    "Kelly Park West, Merritt Island, FL",
-    "Port Canaveral, FL",
-    "Haulover Canal, Mims, FL",
-    "1000 Islands, Cocoa Beach, FL",
-    "Cape May Harbor",
-    "Cape May Ferry Terminal",
-]
-
-for loc in preset_locs:
-  if st.sidebar.button(loc, key=f"btn_{loc}"):
-    st.session_state["location_query"] = loc
-    st.rerun()
 
 LATITUDE, LONGITUDE, location_name = get_lat_lon_from_query(
     st.session_state["location_query"]
