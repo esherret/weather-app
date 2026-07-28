@@ -277,29 +277,28 @@ else:
 
         tide_state = "Rising Tide"
         if tides_data:
-          # Look for any official NOAA high/low peak timestamp that falls within this hour block
-          matched_peak = None
+          # Search for explicit NOAA high/low extrema matching this specific hour window
+          matched_extreme = None
           for dt_key, val in tides_data.items():
             if hour_start <= dt_key < hour_end:
-              # Check neighbors to confirm high or low extreme
-              prev_val = tides_data.get(dt_key - timedelta(hours=1), val)
-              next_val = tides_data.get(dt_key + timedelta(hours=1), val)
-              if val >= prev_val and val >= next_val:
-                matched_peak = ("High", dt_key)
+              p_val = tides_data.get(dt_key - timedelta(hours=1), val)
+              n_val = tides_data.get(dt_key + timedelta(hours=1), val)
+              if val >= p_val and val >= n_val:
+                matched_extreme = ("High", dt_key)
                 break
-              elif val <= prev_val and val <= next_val:
-                matched_peak = ("Low", dt_key)
+              elif val <= p_val and val <= n_val:
+                matched_extreme = ("Low", dt_key)
                 break
-          
-          if matched_peak:
-            p_type, p_dt = matched_peak
-            tide_state = f"{p_type} {p_dt.strftime('%H:%M')}"
+
+          if matched_extreme:
+            e_type, e_dt = matched_extreme
+            tide_state = f"{e_type} {e_dt.strftime('%H:%M')}"
           else:
-            # Fallback to general trend between start and end of this hour block
-            v_start = tides_data.get(hour_start)
-            v_end = tides_data.get(hour_end)
-            if v_start is not None and v_end is not None:
-              diff = v_end - v_start
+            # Look up exact NOAA prediction value for this hour to determine smooth trend
+            v_curr = tides_data.get(hour_start)
+            v_next = tides_data.get(hour_end)
+            if v_curr is not None and v_next is not None:
+              diff = v_next - v_curr
               if abs(diff) < 0.02:
                 tide_state = "Slack Tide"
               elif diff > 0:
@@ -307,11 +306,9 @@ else:
               else:
                 tide_state = "Falling Tide"
             else:
-              # Check slope against immediate neighbor if boundary data missing
-              v_curr = tides_data.get(hour_start, 2.0)
-              v_prev = tides_data.get(hour_start - timedelta(hours=1), v_curr)
-              v_nxt = tides_data.get(hour_start + timedelta(hours=1), v_curr)
-              if v_nxt > v_curr:
+              v_prev = tides_data.get(hour_start - timedelta(hours=1), 2.0)
+              v_cur = tides_data.get(hour_start, 2.0)
+              if v_cur >= v_prev:
                 tide_state = "Rising Tide"
               else:
                 tide_state = "Falling Tide"
