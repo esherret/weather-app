@@ -459,12 +459,12 @@ else:
             box_border = "#21c354"
           box_bg = "#fff"
 
-          # Determine triggering reason icon(s) for red or yellow boxes, using the wind sock / flag fluttering icon (🚩) for wind
+          # Determine triggering reason icon(s) for red or yellow boxes, with text-shadow outline on the wind sock icon as well
           trigger_icons = ""
           reasons = []
           
           if wind_val > 8.0:
-            reasons.append("🚩")
+            reasons.append('<span style="text-shadow: -1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000, 1px 1px 0 #000; color: #ffffff;">🚩</span>')
           if pop > 15:
             reasons.append("💧")
           if thunder_pct > 15:
