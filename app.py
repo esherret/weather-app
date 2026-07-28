@@ -18,15 +18,6 @@ st.markdown("""
         padding-top: 2rem !important;
     }
 
-    /* Pull input fields up closer to the title */
-    div.stTextInput {
-        margin-top: -15px !important;
-    }
-    
-    div.stButton > button {
-        margin-top: -15px !important;
-    }
-
     @media (min-width: 768px) {
         .block-container {
             max-width: 95rem;
@@ -53,10 +44,6 @@ st.markdown("""
         .wind-dir-space {
             display: inline-block;
             width: 14px;
-        }
-        
-        div.stButton > button {
-            margin-top: 27px !important;
         }
     }
 
@@ -328,34 +315,34 @@ for label, query in PRESET_LOCATIONS.items():
     st.session_state["top_location_input"] = query
     st.rerun()
 
-# Top layout split into two columns: Title on the left, and Change Location box + button on the right
-col_title, col_search = st.columns([2, 1.4])
+# Page title and location input stacked vertically with button right beside input
+st.title("Ed's Weather Yak")
 
-with col_title:
-  st.title("Ed's Weather Yak")
+col_input, col_btn = st.columns([3.5, 1])
 
-with col_search:
-  subcol1, subcol2 = st.columns([1.6, 1])
-  with subcol1:
-    def handle_top_location_change():
-      new_loc = st.session_state.get("top_location_input", "").strip()
-      if new_loc:
-        st.session_state["location_query"] = new_loc
+with col_input:
+  def handle_top_location_change():
+    new_loc = st.session_state.get("top_location_input", "").strip()
+    if new_loc:
+      st.session_state["location_query"] = new_loc
 
-    st.text_input(
-        "Location:",
-        value=st.session_state["location_query"],
-        key="top_location_input",
-        placeholder="Address or zip...",
-        label_visibility="collapsed",
-        on_change=handle_top_location_change
-    )
-  with subcol2:
-    if st.button("Change"):
-      new_loc = st.session_state.get("top_location_input", "").strip()
-      if new_loc:
-        st.session_state["location_query"] = new_loc
-        st.rerun()
+  st.text_input(
+      "Location:",
+      value=st.session_state["location_query"],
+      key="top_location_input",
+      placeholder="Address or zip...",
+      label_visibility="collapsed",
+      on_change=handle_top_location_change
+  )
+
+with col_btn:
+  if st.button("Change"):
+    new_loc = st.session_state.get("top_location_input", "").strip()
+    if new_loc:
+      st.session_state["location_query"] = new_loc
+      st.rerun()
+
+st.write("")
 
 # Render data using the active session state location query
 LATITUDE, LONGITUDE, location_name = get_lat_lon_from_query(st.session_state["location_query"])
