@@ -91,7 +91,7 @@ def fetch_tides(station_id):
 
 
 def get_sun_times(lat, lon, date_str):
-  # sunrise-sunset.org returns UTC time strings when formatted=0
+  # Requesting civil twilight data by passing formatted=0 to get UTC timestamps
   url = f"https://api.sunrise-sunset.org/json?lat={lat}&lng={lon}&date={date_str}&formatted=0"
   try:
     res = requests.get(url, timeout=3)
@@ -99,19 +99,29 @@ def get_sun_times(lat, lon, date_str):
       data = res.json()
       if data.get("status") == "OK":
         results = data["results"]
+        # Civil twilight corresponds to first/last light (sun 6 degrees below horizon)
+        dawn_utc = datetime.fromisoformat(results["civil_twilight_begin"])
+        dusk_utc = datetime.fromisoformat(results["civil_twilight_end"])
         rise_utc = datetime.fromisoformat(results["sunrise"])
         set_utc = datetime.fromisoformat(results["sunset"])
         
-        # Correct timezone offset approximation based on longitude (15 deg per hour, roughly -5h for Eastern US)
-        offset_hours = round(lon / 15.0)
-        local_tz = timezone(timedelta(hours=offset_hours))
+        # Explicit Eastern Daylight Time offset for US Eastern zip codes (UTC-4)
+        local_tz = timezone(timedelta(hours=-4))
         
+        dawn_local = dawn_utc.astimezone(local_tz)
+        dusk_local = dusk_utc.astimezone(local_tz)
         rise_local = rise_utc.astimezone(local_tz)
         set_local = set_utc.astimezone(local_tz)
-        return rise_local.strftime("%I:%M %p").lstrip("0"), set_local.strftime("%I:%M %p").lstrip("0")
+        
+        return (
+            dawn_local.strftime("%I:%M %p").lstrip("0"),
+            rise_local.strftime("%I:%M %p").lstrip("0"),
+            set_local.strftime("%I:%M %p").lstrip("0"),
+            dusk_local.strftime("%I:%M %p").lstrip("0"),
+        )
   except Exception:
     pass
-  return "6:30 AM", "7:45 PM"
+  return "6:10 AM", "6:42 AM", "8:16 PM", "8:48 PM"
 
 
 def get_moon_phase_emoji(dt):
@@ -304,7 +314,7 @@ else:
 
     moon_emoji, moon_desc = get_moon_phase_emoji(sample_dt)
     date_str_api = sample_dt.strftime("%Y-%m-%d")
-    sunrise_str, sunset_str = get_sun_times(LATITUDE, LONGITUDE, date_str_api)
+    dawn_str, sunrise_str, sunset_str, dusk_str = get_sun_times(LATITUDE, LONGITUDE, date_str_api)
 
     header_html = f'''
     <div style="margin-bottom: 8px;">
@@ -324,7 +334,7 @@ else:
         </div>
       </div>
       <div style="font-size: 11px; color: #555; margin-top: 2px; margin-left: 30px;">
-        Sunrise: {sunrise_str} &nbsp;|&nbsp; Sunset: {sunset_str}
+        First Light: {dawn_str} &nbsp;|&nbsp; Sunrise: {sunrise_str} &nbsp;|&nbsp; Sunset: {sunset_str} &nbsp;|&nbsp; Last Light: {dusk_str}
       </div>
     </div>
     '''
