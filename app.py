@@ -8,7 +8,7 @@ st.set_page_config(
     page_title="Weather Window Monitor", page_icon="🌤️", layout="wide"
 )
 
-# Custom CSS for spacing, top margin to clear Streamlit's toolbar, bolding, sizing, and header shading.
+# Custom CSS for spacing, hiding map zoom controls, top margin, bolding, and sizing.
 st.markdown("""
 <style>
     .weather-card * {
@@ -17,6 +17,11 @@ st.markdown("""
 
     .main .block-container {
         padding-top: 3.5rem !important;
+    }
+
+    /* Hide PyDeck / Mapbox navigation/zoom buttons (+ and -) */
+    .mapboxgl-ctrl-top-right, .mapboxgl-ctrl-bottom-right, .mapboxgl-ctrl-group {
+        display: none !important;
     }
 
     @media (min-width: 768px) {
@@ -336,7 +341,6 @@ with top_col1:
   st.caption(f"Current Location Context: {location_name}")
 
 with top_col2:
-  # Non-interactive map thumbnail placed right next to location information
   map_df = pd.DataFrame({"lat": [LATITUDE], "lon": [LONGITUDE]})
   st.pydeck_chart(
       pdk.Deck(
