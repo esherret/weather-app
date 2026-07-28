@@ -249,6 +249,11 @@ def get_wind_svg(direction_str):
   return f'<span style="display: inline-block; transform: rotate({deg}deg); width: 14px; height: 14px; line-height: 14px; text-align: center; vertical-align: middle; margin-right: 4px;">⬆️</span>'
 
 
+def get_custom_wind_svg(size=16):
+  # Precise SVG replica of the uploaded wind icon image
+  return f'<svg viewBox="0 0 100 100" style="width: {size}px; height: {size}px; vertical-align: middle; display: inline-block;" fill="none" stroke="currentColor" stroke-width="8" stroke-linecap="round"><path d="M10 32 H 55 C 72 32, 72 58, 55 58 C 45 58, 42 48, 42 45"/><path d="M10 50 H 68 C 88 50, 88 78, 68 78 C 55 78, 50 65, 50 60"/><path d="M10 68 H 40 C 58 68, 58 92, 40 92 C 30 92, 28 82, 28 78"/></svg>'
+
+
 def get_icon_level(pct):
   if pct >= 50:
       return 3
@@ -435,6 +440,7 @@ else:
           wind_val = float(wind_str.split()[0])
           wind_dir = period.get("windDirection", "N")
           pointer_svg = get_wind_svg(wind_dir)
+          custom_wind_icon = get_custom_wind_svg(size=14)
 
           pop = period.get("probabilityOfPrecipitation", {}).get("value") or 0
           short_fc = period["shortForecast"]
@@ -459,19 +465,14 @@ else:
             box_border = "#21c354"
           box_bg = "#fff"
 
-          # Determine triggering reason icon(s) if an item is either red OR yellow
+          # Determine triggering reason icon(s) for red or yellow boxes using the custom wind SVG in the time box
           trigger_icons = ""
           reasons = []
           
-          # Check wind (yellow if > 8.0, red if > 13.0)
           if wind_val > 8.0:
-            reasons.append("💨")
-          
-          # Check rain / POP (yellow if > 15, red if > 25)
+            reasons.append(custom_wind_icon)
           if pop > 15:
             reasons.append("💧")
-          
-          # Check thunder (yellow if > 15, red if > 25)
           if thunder_pct > 15:
             reasons.append('<span style="text-shadow: -1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000, 1px 1px 0 #000; color: #ffeb3b;">⚡</span>')
           
