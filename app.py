@@ -37,7 +37,6 @@ st.markdown("""
             font-size: 1.15rem !important;
         }
         
-        /* Add a space equal to the size of the wind direction icon between the icon and text on computer/tablet */
         .wind-dir-space {
             display: inline-block;
             width: 14px;
@@ -85,8 +84,6 @@ def get_location_from_ip():
 
 @st.cache_data(ttl=3600)
 def get_lat_lon_from_query(query, user_lat=28.3, user_lon=-80.6):
-  # Use Nominatim OpenStreetMap search allowing free-form addresses or landmarks (e.g. "Kelly Park")
-  # Prioritize proximity if a general name like Kelly Park is searched
   url = f"https://nominatim.openstreetmap.org/search?q={requests.utils.quote(query)}&country=United States&format=json&limit=1"
   try:
     res = requests.get(url, headers={"User-Agent": "WeatherWindowApp/1.0"}, timeout=5)
@@ -96,7 +93,6 @@ def get_lat_lon_from_query(query, user_lat=28.3, user_lon=-80.6):
   except Exception:
     pass
   
-  # Fallback search if strict search fails or if user types a local landmark name with region context
   url_fallback = f"https://nominatim.openstreetmap.org/search?q={requests.utils.quote(query + ', Merritt Island, FL')} &format=json&limit=1"
   try:
     res = requests.get(url_fallback, headers={"User-Agent": "WeatherWindowApp/1.0"}, timeout=5)
@@ -463,6 +459,19 @@ else:
             box_border = "#21c354"
           box_bg = "#fff"
 
+          # Determine triggering reason icon(s) for red or yellow boxes
+          trigger_icons = ""
+          if is_red or is_yellow:
+            reasons = []
+            if wind_val > (13.0 if is_red else 8.0):
+              reasons.append("💨")
+            if pop > (25 if is_red else 15):
+              reasons.append("💧")
+            if thunder_pct > (25 if is_red else 15):
+              reasons.append("⚡")
+            if reasons:
+              trigger_icons = f' <span style="font-size: 11px; margin-left: 4px;" title="Triggered by: {' '.join(reasons)}">{' '.join(reasons)}</span>'
+
           wind_bg = get_rating_bg_color(wind_val, is_wind=True)
           rain_bg = get_rating_bg_color(pop, is_wind=False)
           thunder_bg = get_rating_bg_color(thunder_pct, is_wind=False)
@@ -521,7 +530,7 @@ else:
 
           grid_html += f"""
           <div class="weather-card" style="flex: 1; min-width: 0; background-color: {box_bg}; border: 2px solid {box_border}; border-radius: 6px; padding: 4px; text-align: center; color: black;">
-            <div class="box-time" style="margin-bottom: 4px; background-color: {box_border}; color: black; border-radius: 3px; padding: 2px; border-bottom: 1px solid rgba(0,0,0,0.1);">{time_label}</div>
+            <div class="box-time" style="margin-bottom: 4px; background-color: {box_border}; color: black; border-radius: 3px; padding: 2px; border-bottom: 1px solid rgba(0,0,0,0.1);">{time_label}{trigger_icons}</div>
             <div style="margin-bottom: 4px; background-color: {wind_bg}; border-radius: 4px; padding: 2px;" title="Wind: {wind_val} mph {wind_dir}">
               <div class="box-text">{int(wind_val)}mph</div>
               <div class="box-text">{pointer_svg}<span class="wind-dir-space"></span><span>{wind_dir}</span></div>
