@@ -408,9 +408,21 @@ else:
     st.error("Failed to retrieve data from the National Weather Service API.")
   else:
     forecast_map = {}
+    day_abbr_map = {
+        "Monday": "MON",
+        "Tuesday": "TUE",
+        "Wednesday": "WED",
+        "Thursday": "THU",
+        "Friday": "FRI",
+        "Saturday": "SAT",
+        "Sunday": "SUN"
+    }
+
     for period in periods:
       start_time = datetime.fromisoformat(period["startTime"])
-      day_name = start_time.strftime("%A, %b %d")
+      full_day_name = start_time.strftime("%A")
+      abbr_day = day_abbr_map.get(full_day_name, full_day_name[:3].upper())
+      day_name = f"{abbr_day}, {start_time.strftime('%b %d')}"
       hour = start_time.hour
       if day_name not in forecast_map:
         forecast_map[day_name] = {}
