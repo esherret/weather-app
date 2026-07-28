@@ -7,7 +7,7 @@ st.set_page_config(
     page_title="Ed's Weather Yak", page_icon="🌤️", layout="wide"
 )
 
-# Custom CSS to force the text box to be 20 pixels wide on iPhone, keep inline layout, and remove header whitespace.
+# Custom CSS for stacking input and button vertically with minimal gap, and widening desktop textbox.
 st.markdown("""
 <style>
     .weather-card * {
@@ -23,29 +23,22 @@ st.markdown("""
         display: none !important;
     }
 
-    /* Force Streamlit columns to stay side-by-side on mobile/iPhone */
+    /* Reduce vertical gap between stacked elements in the input column */
+    div[data-testid="column"] div.stButton {
+        margin-top: -1.2rem !important;
+    }
+
     @media (max-width: 767px) {
-        [data-testid="stHorizontalBlock"] {
-            display: flex !important;
-            flex-direction: row !important;
-            flex-wrap: nowrap !important;
-        }
-        [data-testid="column"] {
-            width: auto !important;
-            flex: 1 1 auto !important;
-            min-width: 0 !important;
-        }
-        
-        /* Force location text box to be exactly 20px wide on iPhone */
+        /* iPhone: narrow text box */
         div[data-baseweb="input"] {
-            width: 20px !important;
-            max-width: 20px !important;
+            width: 120px !important;
+            max-width: 120px !important;
         }
         
         div.stButton > button {
-            width: 100% !important;
-            padding: 0.35rem 0.5rem !important;
-            font-size: 0.85rem !important;
+            width: 120px !important;
+            padding: 0.25rem 0.5rem !important;
+            font-size: 0.8rem !important;
         }
 
         .box-time {
@@ -91,10 +84,15 @@ st.markdown("""
             display: inline-block;
             width: 14px;
         }
-        
+
+        /* Computer/Tablet: make textbox three times wider (~450px) */
         div[data-baseweb="input"] {
-            width: 30px !important;
-            max-width: 30px !important;
+            width: 450px !important;
+            max-width: 450px !important;
+        }
+        
+        div.stButton > button {
+            width: 100px !important;
         }
     }
 </style>
@@ -352,30 +350,26 @@ for label, query in PRESET_LOCATIONS.items():
 # Page title pushed to the very top
 st.markdown("## Ed's Weather Yak")
 
-# 20px width input box on mobile and "Go" button placed strictly on the same line
-col_input, col_btn = st.columns([20, 80])
+# Stack text input and Go button vertically with minimal gap
+def handle_top_location_change():
+  new_loc = st.session_state.get("top_location_input", "").strip()
+  if new_loc:
+    st.session_state["location_query"] = new_loc
 
-with col_input:
-  def handle_top_location_change():
-    new_loc = st.session_state.get("top_location_input", "").strip()
-    if new_loc:
-      st.session_state["location_query"] = new_loc
+st.text_input(
+    "Location:",
+    value=st.session_state["location_query"],
+    key="top_location_input",
+    placeholder="Address or zip...",
+    label_visibility="collapsed",
+    on_change=handle_top_location_change,
+)
 
-  st.text_input(
-      "Location:",
-      value=st.session_state["location_query"],
-      key="top_location_input",
-      placeholder="Address or zip...",
-      label_visibility="collapsed",
-      on_change=handle_top_location_change,
-  )
-
-with col_btn:
-  if st.button("Go"):
-    new_loc = st.session_state.get("top_location_input", "").strip()
-    if new_loc:
-      st.session_state["location_query"] = new_loc
-      st.rerun()
+if st.button("Go"):
+  new_loc = st.session_state.get("top_location_input", "").strip()
+  if new_loc:
+    st.session_state["location_query"] = new_loc
+    st.rerun()
 
 st.write("")
 
