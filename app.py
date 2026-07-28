@@ -7,7 +7,7 @@ st.set_page_config(
     page_title="Ed's Weather Yak", page_icon="🌤️", layout="wide"
 )
 
-# Custom CSS to force the text box to be 30 pixels wide on all platforms and keep inline layout.
+# Custom CSS to force the text box to be 20 pixels wide on iPhone, keep inline layout, and remove header whitespace.
 st.markdown("""
 <style>
     .weather-card * {
@@ -23,12 +23,6 @@ st.markdown("""
         display: none !important;
     }
 
-    /* Force location text box to be 30px wide across all viewports */
-    div[data-baseweb="input"] {
-        width: 30px !important;
-        max-width: 30px !important;
-    }
-
     /* Force Streamlit columns to stay side-by-side on mobile/iPhone */
     @media (max-width: 767px) {
         [data-testid="stHorizontalBlock"] {
@@ -40,6 +34,12 @@ st.markdown("""
             width: auto !important;
             flex: 1 1 auto !important;
             min-width: 0 !important;
+        }
+        
+        /* Force location text box to be exactly 20px wide on iPhone */
+        div[data-baseweb="input"] {
+            width: 20px !important;
+            max-width: 20px !important;
         }
         
         div.stButton > button {
@@ -90,6 +90,11 @@ st.markdown("""
         .wind-dir-space {
             display: inline-block;
             width: 14px;
+        }
+        
+        div[data-baseweb="input"] {
+            width: 30px !important;
+            max-width: 30px !important;
         }
     }
 </style>
@@ -347,8 +352,8 @@ for label, query in PRESET_LOCATIONS.items():
 # Page title pushed to the very top
 st.markdown("## Ed's Weather Yak")
 
-# 30px width input box and "Go" button placed strictly on the same line
-col_input, col_btn = st.columns([30, 70])
+# 20px width input box on mobile and "Go" button placed strictly on the same line
+col_input, col_btn = st.columns([20, 80])
 
 with col_input:
   def handle_top_location_change():
