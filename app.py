@@ -13,6 +13,20 @@ HEADERS = {
 
 
 @st.cache_data(ttl=3600)
+def get_location_from_ip():
+  try:
+    res = requests.get("https://ipapi.co/json", timeout=3)
+    if res.status_code == 200:
+      data = res.json()
+      postal = data.get("postal")
+      if postal:
+        return postal
+  except Exception:
+    pass
+  return "32953"
+
+
+@st.cache_data(ttl=3600)
 def get_lat_lon_from_zip(zip_code):
   url = f"https://nominatim.openstreetmap.org/search?postalcode={zip_code}&country=United States&format=json"
   try:
@@ -104,7 +118,6 @@ def get_sun_times(lat, lon, date_str):
         rise_utc = datetime.fromisoformat(results["sunrise"])
         set_utc = datetime.fromisoformat(results["sunset"])
         
-        # Correctly offset by -5 hours for Eastern Standard / local sun calculation alignment
         local_tz = timezone(timedelta(hours=-5))
         
         dawn_local = dawn_utc.astimezone(local_tz)
@@ -212,9 +225,9 @@ def get_rating_bg_color(val, is_wind=False):
       return "#e6f4ea"
 
 
-# Initialize session state for zip code
+# Initialize session state for zip code dynamically from current location (IP)
 if "zip_code" not in st.session_state:
-  st.session_state["zip_code"] = "32953"
+  st.session_state["zip_code"] = get_location_from_ip()
 
 # Sidebar configuration using a form for submit-to-close behavior
 st.sidebar.header("Location Settings")
@@ -227,7 +240,6 @@ with st.sidebar.form(key="zip_form"):
 
 LATITUDE, LONGITUDE, location_name = get_lat_lon_from_zip(st.session_state["zip_code"])
 
-# Extract clean city/area name for the title if possible from the geocoding display name
 display_title_location = location_name.split(",")[0] if location_name else "Weather"
 
 st.title(f"{display_title_location} Weather")
