@@ -305,15 +305,15 @@ else:
                   else:
                     tide_state = "Rising"
 
-          # Formatting for High (red H), Low (green L), Rising, and Falling with larger text
+          # Formatting for High (red H in white circle), Low (green L in white circle), Rising (arrow), Falling (arrow)
           if tide_state == "High":
-            tide_display = '<span style="color: red; font-weight: bold; font-size: 14px;">H</span>'
+            tide_display = '<span style="display: inline-block; width: 22px; height: 22px; line-height: 22px; text-align: center; background-color: white; color: red; font-weight: bold; font-size: 14px; border-radius: 50%; box-shadow: 0 0 2px rgba(0,0,0,0.3);">H</span>'
           elif tide_state == "Low":
-            tide_display = '<span style="color: green; font-weight: bold; font-size: 14px;">L</span>'
+            tide_display = '<span style="display: inline-block; width: 22px; height: 22px; line-height: 22px; text-align: center; background-color: white; color: green; font-weight: bold; font-size: 14px; border-radius: 50%; box-shadow: 0 0 2px rgba(0,0,0,0.3);">L</span>'
           elif tide_state == "Rising":
-            tide_display = '<span style="color: black; font-weight: bold; font-size: 14px;">Rising</span>'
+            tide_display = '<span style="color: black; font-weight: bold; font-size: 14px;">↗ Rising</span>'
           else:
-            tide_display = '<span style="color: black; font-weight: bold; font-size: 14px;">Falling</span>'
+            tide_display = '<span style="color: black; font-weight: bold; font-size: 14px;">↘ Falling</span>'
 
           grid_html += f"""
           <div style="flex: 1; min-width: 85px; background-color: {box_bg}; border: 2px solid {box_border}; border-radius: 6px; padding: 6px; text-align: center; font-size: 11px; color: black;">
