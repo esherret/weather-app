@@ -77,10 +77,10 @@ DEFAULT_ADDRESS = "Kelly Park West, 2455, Merritt Island, Brevard County, Florid
 PRESET_LOCATIONS = {
     "Kelly Park West, Merritt Island, FL": DEFAULT_ADDRESS,
     "Port Canaveral, FL": "Port Canaveral, Brevard County, Florida, 32920, United States",
-    "Mims, FL": "Haulover Canal, Mims, FL",
+    "Titusville, FL": "Titusville, Brevard County, Florida, United States",
     "Cocoa Beach, FL": "Cocoa Beach, Brevard County, Florida, United States",
     "Vero Beach, FL": "Vero Beach, Indian River County, Florida, United States",
-    "Cape May Harbor, Cape May, NJ": "Cape May Harbor, Lower Township, Cape May County, New Jersey, 18204, United States",
+    "Cape May Harbor": "Cape May Harbor, Lower Township, Cape May County, New Jersey, 18204, United States",
     "North Cape May, NJ": "Cape May, Cape May-Lewes Ferry Entrance, Lower Township, Cape May County, New Jersey, 08212, United States",
 }
 
@@ -333,6 +333,7 @@ with col_search:
 
     st.text_input(
         "Change Location:",
+        value=st.session_state["location_query"],
         key="top_location_input",
         placeholder="Address, landmark, or zip...",
         label_visibility="visible",
