@@ -319,7 +319,7 @@ else:
   LATITUDE, LONGITUDE, location_name = get_lat_lon_from_query(st.session_state["location_query"])
   
   if LATITUDE is None or LONGITUDE is None:
-    st.error("Could not find coordinates for that location. Please try a different query.")
+    st.error("Could not find coordinates for that location. Please try a different query (e.g., adding country or state explicitly).")
   else:
     display_title_location = location_name.split(",")[0] if location_name else "Weather"
 
@@ -577,7 +577,7 @@ else:
             <span style="display: inline-block; width: 10px; height: 10px; background-color: #e6f4ea; border: 1px solid #21c354; border-radius: 2px;"></span>
             <span>≤8</span>
           </div>
-          <div style="display: flex; align-items: center; gap: 3px;">
+          <div style="display: flex. align-items: center; gap: 3px;">
             <span style="display: inline-block; width: 10px; height: 10px; background-color: #fffacc; border: 1px solid #ffeb3b; border-radius: 2px;"></span>
             <span>8.1–13</span>
           </div>
