@@ -92,7 +92,6 @@ def fetch_tides(station_id):
 
 @st.cache_data(ttl=3600)
 def get_sun_times(lat, lon, date_str):
-  # Sunrise-Sunset API returns UTC time strings when formatted=0
   url = f"https://api.sunrise-sunset.org/json?lat={lat}&lng={lon}&date={date_str}&formatted=0"
   try:
     res = requests.get(url, timeout=3)
@@ -105,13 +104,8 @@ def get_sun_times(lat, lon, date_str):
         rise_utc = datetime.fromisoformat(results["sunrise"])
         set_utc = datetime.fromisoformat(results["sunset"])
         
-        # Determine correct local timezone offset using a US timezone lookup based on longitude ranges or defaulting accurately to Eastern Daylight Time (UTC-4) during summer months
-        # Standard US Eastern longitude is approx -81 deg. If longitude is between roughly -67 and -90, we apply Eastern offset.
-        # Handling daylight saving time properly by using UTC-4 for summer months (EDT)
-        offset_hours = -4 if (datetime.now().month in [3, 4, 5, 6, 7, 8, 9, 10] or (datetime.now().month == 3 and datetime.now().day >= 14) or (datetime.now().month == 11 and datetime.now().day < 7)) else -5
-        
-        # Refine based on longitude estimate if needed, but for Florida/East Coast -4 is EDT.
-        local_tz = timezone(timedelta(hours=offset_hours))
+        # Correctly offset by -5 hours for Eastern Standard / local sun calculation alignment
+        local_tz = timezone(timedelta(hours=-5))
         
         dawn_local = dawn_utc.astimezone(local_tz)
         dusk_local = dusk_utc.astimezone(local_tz)
@@ -233,7 +227,10 @@ with st.sidebar.form(key="zip_form"):
 
 LATITUDE, LONGITUDE, location_name = get_lat_lon_from_zip(st.session_state["zip_code"])
 
-st.title("Merritt Island Weather")
+# Extract clean city/area name for the title if possible from the geocoding display name
+display_title_location = location_name.split(",")[0] if location_name else "Weather"
+
+st.title(f"{display_title_location} Weather")
 st.caption(f"Current Location Context: {location_name}")
 
 st.markdown(
