@@ -6,7 +6,7 @@ st.set_page_config(
     page_title="Weather Window Monitor", page_icon="🌤️", layout="wide"
 )
 
-# Custom CSS for styling the header row background using the calculated box border color
+# Custom CSS for spacing between wind icon and text on desktop/tablet, bolding, sizing, and header shading.
 st.markdown("""
 <style>
     .weather-card * {
@@ -36,6 +36,12 @@ st.markdown("""
         .box-text {
             font-size: 1.15rem !important;
         }
+        
+        /* Add a space equal to the size of the wind direction icon between the icon and text on computer/tablet */
+        .wind-dir-space {
+            display: inline-block;
+            width: 14px;
+        }
     }
 
     @media (max-width: 767px) {
@@ -48,6 +54,10 @@ st.markdown("""
         .weather-card {
             min-width: 0 !important;
             padding: 4px !important;
+        }
+        .wind-dir-space {
+            display: inline;
+            width: auto;
         }
     }
 </style>
@@ -74,15 +84,28 @@ def get_location_from_ip():
 
 
 @st.cache_data(ttl=3600)
-def get_lat_lon_from_zip(zip_code):
-  url = f"https://nominatim.openstreetmap.org/search?postalcode={zip_code}&country=United States&format=json"
+def get_lat_lon_from_query(query, user_lat=28.3, user_lon=-80.6):
+  # Use Nominatim OpenStreetMap search allowing free-form addresses or landmarks (e.g. "Kelly Park")
+  # Prioritize proximity if a general name like Kelly Park is searched
+  url = f"https://nominatim.openstreetmap.org/search?q={requests.utils.quote(query)}&country=United States&format=json&limit=1"
   try:
     res = requests.get(url, headers={"User-Agent": "WeatherWindowApp/1.0"}, timeout=5)
     if res.status_code == 200 and res.json():
       data = res.json()[0]
-      return float(data["lat"]), float(data["lon"]), data.get("display_name", zip_code)
+      return float(data["lat"]), float(data["lon"]), data.get("display_name", query)
   except Exception:
     pass
+  
+  # Fallback search if strict search fails or if user types a local landmark name with region context
+  url_fallback = f"https://nominatim.openstreetmap.org/search?q={requests.utils.quote(query + ', Merritt Island, FL')} &format=json&limit=1"
+  try:
+    res = requests.get(url_fallback, headers={"User-Agent": "WeatherWindowApp/1.0"}, timeout=5)
+    if res.status_code == 200 and res.json():
+      data = res.json()[0]
+      return float(data["lat"]), float(data["lon"]), data.get("display_name", query)
+  except Exception:
+    pass
+
   return 28.4021, -80.6629, "Merritt Island, FL (Default)"
 
 
@@ -272,20 +295,20 @@ def get_rating_bg_color(val, is_wind=False):
       return "#e6f4ea"
 
 
-# Initialize session state for zip code dynamically from current location (IP)
-if "zip_code" not in st.session_state:
-  st.session_state["zip_code"] = get_location_from_ip()
+# Initialize session state for location query dynamically from current location (IP)
+if "location_query" not in st.session_state:
+  st.session_state["location_query"] = get_location_from_ip()
 
 # Sidebar configuration using a form for submit-to-close behavior
 st.sidebar.header("Location Settings")
-with st.sidebar.form(key="zip_form"):
-  entered_zip = st.text_input("Enter ZIP Code", value=st.session_state["zip_code"])
+with st.sidebar.form(key="location_form"):
+  entered_query = st.text_input("Enter ZIP, Address, or Landmark", value=st.session_state["location_query"])
   submit_button = st.form_submit_button(label="Update Location")
 
   if submit_button:
-    st.session_state["zip_code"] = entered_zip
+    st.session_state["location_query"] = entered_query
 
-LATITUDE, LONGITUDE, location_name = get_lat_lon_from_zip(st.session_state["zip_code"])
+LATITUDE, LONGITUDE, location_name = get_lat_lon_from_query(st.session_state["location_query"])
 
 display_title_location = location_name.split(",")[0] if location_name else "Weather"
 
@@ -501,7 +524,7 @@ else:
             <div class="box-time" style="margin-bottom: 4px; background-color: {box_border}; color: black; border-radius: 3px; padding: 2px; border-bottom: 1px solid rgba(0,0,0,0.1);">{time_label}</div>
             <div style="margin-bottom: 4px; background-color: {wind_bg}; border-radius: 4px; padding: 2px;" title="Wind: {wind_val} mph {wind_dir}">
               <div class="box-text">{int(wind_val)}mph</div>
-              <div class="box-text">{pointer_svg}<span>{wind_dir}</span></div>
+              <div class="box-text">{pointer_svg}<span class="wind-dir-space"></span><span>{wind_dir}</span></div>
             </div>
             <div class="box-text" style="margin-bottom: 3px; background-color: {rain_bg}; border-radius: 4px; padding: 2px;" title="Chance of Rain: {pop}%">{rain_icons} <span>{pop}%</span></div>
             <div class="box-text" style="margin-bottom: 4px; background-color: {thunder_bg}; border-radius: 4px; padding: 2px;" title="Chance of Thunder: {thunder_pct}%"><span style="text-shadow: -1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000, 1px 1px 0 #000; color: #ffeb3b;">{thunder_icons}</span> <span>{thunder_pct}%</span></div>
