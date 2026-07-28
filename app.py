@@ -297,18 +297,13 @@ def get_rating_bg_color(val, is_wind=False):
 if "location_query" not in st.session_state:
   st.session_state["location_query"] = "Kelly Park West, Merritt Island, FL"
 
-# Sidebar configuration using explicit callback / explicit submit state handling
+# Sidebar configuration using direct key binding
 st.sidebar.header("Location Settings")
-with st.sidebar.form(key="location_form"):
-  entered_query = st.text_input("Enter ZIP, Address, or Landmark", value=st.session_state["location_query"])
-  submit_button = st.form_submit_button(label="Update Location")
+st.sidebar.text_input(
+    "Enter ZIP, Address, or Landmark", key="location_query"
+)
 
-if submit_button:
-  if entered_query and entered_query != st.session_state["location_query"]:
-    st.session_state["location_query"] = entered_query
-    st.rerun()
-
-# Quick location preset links in the sidebar
+# Quick location preset buttons below the text input
 st.sidebar.markdown("**Quick Locations:**")
 preset_locs = [
     "Kelly Park West, Merritt Island, FL",
@@ -324,7 +319,9 @@ for loc in preset_locs:
     st.session_state["location_query"] = loc
     st.rerun()
 
-LATITUDE, LONGITUDE, location_name = get_lat_lon_from_query(st.session_state["location_query"])
+LATITUDE, LONGITUDE, location_name = get_lat_lon_from_query(
+    st.session_state["location_query"]
+)
 
 display_title_location = location_name.split(",")[0] if location_name else "Weather"
 
@@ -474,7 +471,7 @@ else:
             box_border = "#21c354"
           box_bg = "#fff"
 
-          # Determine triggering reason icon(s) for red or yellow boxes, with black border outline on the white-colored wind flag icon
+          # Determine triggering reason icon(s) for red or yellow boxes, placed below the time
           trigger_icons = ""
           reasons = []
           
@@ -578,7 +575,7 @@ else:
 
     st.divider()
 
-# Legend moved to the bottom left, with the NWS link placed below it
+# Legend at the bottom left, with the NWS link placed below it
 st.markdown("""
   <div style="display: flex; flex-direction: column; gap: 6px; font-size: 11px; font-weight: bold; background: #f8fafc; padding: 8px 12px; border: 1px solid #d1d5db; border-radius: 6px; box-shadow: 0 1px 2px rgba(0,0,0,0.05); width: fit-content; margin-top: 20px; margin-bottom: 10px;">
     <div style="display: flex; align-items: center; gap: 8px;">
