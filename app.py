@@ -15,12 +15,12 @@ st.markdown("""
     }
 
     .main .block-container {
-        padding-top: 3.5rem !important;
+        padding-top: 2rem !important;
     }
 
-    /* Tighten vertical gap for stacked input and button on mobile */
-    [data-testid="column"] {
-        gap: 0rem !important;
+    /* Pull input fields up closer to the title */
+    div.stTextInput {
+        margin-top: -15px !important;
     }
     
     div.stButton > button {
@@ -347,7 +347,7 @@ with col_search:
         value=st.session_state["location_query"],
         key="top_location_input",
         placeholder="Address or zip...",
-        label_visibility="visible",
+        label_visibility="collapsed",
         on_change=handle_top_location_change
     )
   with subcol2:
