@@ -87,7 +87,21 @@ def get_location_from_ip():
 
 @st.cache_data(ttl=3600)
 def get_lat_lon_from_query(query, user_lat=28.3, user_lon=-80.6):
-  url = f"https://nominatim.openstreetmap.org/search?q={requests.utils.quote(query)}&country=United States&format=json&limit=1"
+  cleaned_query = query.strip()
+  
+  # If the query is strictly a 5-digit zip code, query Nominatim explicitly by postalcode parameter
+  if cleaned_query.isdigit() and len(cleaned_query) == 5:
+    url = f"https://nominatim.openstreetmap.org/search?postalcode={cleaned_query}&country=United States&format=json&limit=1"
+    try:
+      res = requests.get(url, headers={"User-Agent": "WeatherWindowApp/1.0"}, timeout=5)
+      if res.status_code == 200 and res.json():
+        data = res.json()[0]
+        return float(data["lat"]), float(data["lon"]), data.get("display_name", query)
+    except Exception:
+      pass
+
+  # Standard free-form query search
+  url = f"https://nominatim.openstreetmap.org/search?q={requests.utils.quote(cleaned_query)}&country=United States&format=json&limit=1"
   try:
     res = requests.get(url, headers={"User-Agent": "WeatherWindowApp/1.0"}, timeout=5)
     if res.status_code == 200 and res.json():
@@ -96,14 +110,16 @@ def get_lat_lon_from_query(query, user_lat=28.3, user_lon=-80.6):
   except Exception:
     pass
   
-  url_fallback = f"https://nominatim.openstreetmap.org/search?q={requests.utils.quote(query + ', Merritt Island, FL')} &format=json&limit=1"
-  try:
-    res = requests.get(url_fallback, headers={"User-Agent": "WeatherWindowApp/1.0"}, timeout=5)
-    if res.status_code == 200 and res.json():
-      data = res.json()[0]
-      return float(data["lat"]), float(data["lon"]), data.get("display_name", query)
-  except Exception:
-    pass
+  # Fallback only if the user query wasn't explicitly a different zip code
+  if not (cleaned_query.isdigit() and len(cleaned_query) == 5):
+    url_fallback = f"https://nominatim.openstreetmap.org/search?q={requests.utils.quote(cleaned_query + ', Merritt Island, FL')} &format=json&limit=1"
+    try:
+      res = requests.get(url_fallback, headers={"User-Agent": "WeatherWindowApp/1.0"}, timeout=5)
+      if res.status_code == 200 and res.json():
+        data = res.json()[0]
+        return float(data["lat"]), float(data["lon"]), data.get("display_name", query)
+    except Exception:
+      pass
 
   return 28.4021, -80.6629, "Merritt Island, FL (Default)"
 
