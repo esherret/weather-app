@@ -7,7 +7,7 @@ st.set_page_config(
     page_title="Ed's Weather Yak", page_icon="🌤️", layout="wide"
 )
 
-# Custom CSS to force the location text box to be 20% of the screen width and remove header whitespace.
+# Custom CSS to force side-by-side columns and 20% width on mobile/iPhone, and remove header whitespace.
 st.markdown("""
 <style>
     .weather-card * {
@@ -23,10 +23,24 @@ st.markdown("""
         display: none !important;
     }
 
-    /* Force location text box to be 20% of screen width */
+    /* Force location text box to be 20% of the screen width */
     div[data-baseweb="input"] {
         width: 20vw !important;
         max-width: 20vw !important;
+    }
+
+    /* Force Streamlit columns to stay side-by-side on iPhone / mobile */
+    @media (max-width: 767px) {
+        [data-testid="stHorizontalBlock"] {
+            display: flex !important;
+            flex-direction: row !important;
+            flex-wrap: nowrap !important;
+        }
+        [data-testid="column"] {
+            width: auto !important;
+            flex: 1 1 auto !important;
+            min-width: 0 !important;
+        }
     }
 
     @media (min-width: 768px) {
@@ -74,23 +88,10 @@ st.markdown("""
             width: auto;
         }
         
-        /* Inline alignment for iPhone */
-        [data-testid="column"]:nth-of-type(1) {
-            width: 55% !important;
-            flex: 55% !important;
-            min-width: 55% !important;
-        }
-        [data-testid="column"]:nth-of-type(2) {
-            width: 45% !important;
-            flex: 45% !important;
-            min-width: 45% !important;
-        }
-        
         div.stButton > button {
             width: 100% !important;
             padding: 0.35rem 0.5rem !important;
             font-size: 0.85rem !important;
-            margin-top: 1.7rem !important;
         }
     }
 </style>
@@ -348,7 +349,7 @@ for label, query in PRESET_LOCATIONS.items():
 # Page title pushed to the very top
 st.markdown("## Ed's Weather Yak")
 
-# 20vw width input box and change button placed strictly on the same line
+# 20vw width input box and "Go" button placed strictly on the same line
 col_input, col_btn = st.columns([20, 80])
 
 with col_input:
@@ -367,7 +368,7 @@ with col_input:
   )
 
 with col_btn:
-  if st.button("Change"):
+  if st.button("Go"):
     new_loc = st.session_state.get("top_location_input", "").strip()
     if new_loc:
       st.session_state["location_query"] = new_loc
