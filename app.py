@@ -272,46 +272,25 @@ else:
         thunder_level = get_icon_level(thunder_pct)
 
         local_dt = start_time.astimezone().replace(tzinfo=None)
-        hour_start = local_dt.replace(minute=0, second=0, microsecond=0)
-        hour_end = hour_start + timedelta(hours=1)
+        tide_key = local_dt.replace(minute=0, second=0, microsecond=0)
+        tide_val = tides_data.get(tide_key)
 
-        tide_state = "Rising Tide"
-        if tides_data:
-          # Search for explicit NOAA high/low extrema matching this specific hour window
-          matched_extreme = None
-          for dt_key, val in tides_data.items():
-            if hour_start <= dt_key < hour_end:
-              p_val = tides_data.get(dt_key - timedelta(hours=1), val)
-              n_val = tides_data.get(dt_key + timedelta(hours=1), val)
-              if val >= p_val and val >= n_val:
-                matched_extreme = ("High", dt_key)
-                break
-              elif val <= p_val and val <= n_val:
-                matched_extreme = ("Low", dt_key)
-                break
+        tide_state = "N/A"
+        if tide_val is not None:
+          prev_dt = tide_key - timedelta(hours=1)
+          next_dt = tide_key + timedelta(hours=1)
+          prev_val = tides_data.get(prev_dt, tide_val)
+          next_val = tides_data.get(next_dt, tide_val)
 
-          if matched_extreme:
-            e_type, e_dt = matched_extreme
-            tide_state = f"{e_type} {e_dt.strftime('%H:%M')}"
+          if tide_val >= prev_val and tide_val >= next_val:
+            tide_state = "High Tide"
+          elif tide_val <= prev_val and tide_val <= next_val:
+            tide_state = "Low Tide"
           else:
-            # Look up exact NOAA prediction value for this hour to determine smooth trend
-            v_curr = tides_data.get(hour_start)
-            v_next = tides_data.get(hour_end)
-            if v_curr is not None and v_next is not None:
-              diff = v_next - v_curr
-              if abs(diff) < 0.02:
-                tide_state = "Slack Tide"
-              elif diff > 0:
-                tide_state = "Rising Tide"
-              else:
-                tide_state = "Falling Tide"
+            if next_val > prev_val:
+              tide_state = "Rising Tide"
             else:
-              v_prev = tides_data.get(hour_start - timedelta(hours=1), 2.0)
-              v_cur = tides_data.get(hour_start, 2.0)
-              if v_cur >= v_prev:
-                tide_state = "Rising Tide"
-              else:
-                tide_state = "Falling Tide"
+              tide_state = "Falling Tide"
 
         grid_html += f"""
         <div style="flex: 1; min-width: 85px; background-color: {box_bg}; border: 2px solid {box_border}; border-radius: 6px; padding: 6px; text-align: center; font-size: 11px; color: black;">
