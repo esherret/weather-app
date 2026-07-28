@@ -6,17 +6,20 @@ st.set_page_config(
     page_title="Weather Window Monitor", page_icon="🌤️", layout="wide"
 )
 
-# Custom CSS for spacing between wind icon and text on desktop/tablet, bolding, sizing, and header shading.
+# Custom CSS for spacing, top margin to clear Streamlit's toolbar, bolding, sizing, and header shading.
 st.markdown("""
 <style>
     .weather-card * {
         font-weight: bold !important;
     }
 
+    .main .block-container {
+        padding-top: 3.5rem !important;
+    }
+
     @media (min-width: 768px) {
         .block-container {
             max-width: 95rem;
-            padding-top: 2rem;
             padding-right: 2rem;
             padding-left: 2rem;
             padding-bottom: 2rem;
@@ -308,27 +311,42 @@ LATITUDE, LONGITUDE, location_name = get_lat_lon_from_query(st.session_state["lo
 
 display_title_location = location_name.split(",")[0] if location_name else "Weather"
 
-# Top layout containing title/caption on the left and wind speed legend on the right
-top_col1, top_col2 = st.columns([3, 2])
+# Top layout containing title/caption on the left and comprehensive legends on the right
+top_col1, top_col2 = st.columns([2, 3])
 with top_col1:
   st.title(f"{display_title_location} Weather")
   st.caption(f"Current Location Context: {location_name}")
 
 with top_col2:
   st.markdown("""
-    <div style="display: flex; justify-content: flex-end; align-items: center; height: 100%; padding-top: 10px;">
-      <div style="display: flex; gap: 6px; font-size: 12px; font-weight: bold; background: #f8fafc; padding: 6px 10px; border: 1px solid #d1d5db; border-radius: 6px; box-shadow: 0 1px 2px rgba(0,0,0,0.05);">
-        <div style="display: flex; align-items: center; gap: 3px;">
-          <span style="display: inline-block; width: 12px; height: 12px; background-color: #e6f4ea; border: 1px solid #21c354; border-radius: 2px;"></span>
-          <span>≤ 8 mph</span>
+    <div style="display: flex; justify-content: flex-end; align-items: flex-start; height: 100%; padding-top: 5px;">
+      <div style="display: flex; flex-direction: column; gap: 4px; font-size: 11px; font-weight: bold; background: #f8fafc; padding: 6px 10px; border: 1px solid #d1d5db; border-radius: 6px; box-shadow: 0 1px 2px rgba(0,0,0,0.05);">
+        <div style="display: flex; align-items: center; gap: 8px;">
+          <span style="color: #4b5563;">Wind Ranges:</span>
+          <div style="display: flex; align-items: center; gap: 3px;">
+            <span style="display: inline-block; width: 10px; height: 10px; background-color: #e6f4ea; border: 1px solid #21c354; border-radius: 2px;"></span>
+            <span>≤8</span>
+          </div>
+          <div style="display: flex; align-items: center; gap: 3px;">
+            <span style="display: inline-block; width: 10px; height: 10px; background-color: #fffacc; border: 1px solid #ffeb3b; border-radius: 2px;"></span>
+            <span>8.1–13</span>
+          </div>
+          <div style="display: flex; align-items: center; gap: 3px;">
+            <span style="display: inline-block; width: 10px; height: 10px; background-color: #ffdddd; border: 1px solid #ff4b4b; border-radius: 2px;"></span>
+            <span>>13 mph</span>
+          </div>
         </div>
-        <div style="display: flex; align-items: center; gap: 3px; margin-left: 6px;">
-          <span style="display: inline-block; width: 12px; height: 12px; background-color: #fffacc; border: 1px solid #ffeb3b; border-radius: 2px;"></span>
-          <span>8.1–13 mph</span>
+        <div style="display: flex; align-items: center; gap: 8px;">
+          <span style="color: #4b5563;">Rain (%):</span>
+          <span>💧: 1–24%</span>
+          <span>💧💧: 25–49%</span>
+          <span>💧💧💧: ≥50%</span>
         </div>
-        <div style="display: flex; align-items: center; gap: 3px; margin-left: 6px;">
-          <span style="display: inline-block; width: 12px; height: 12px; background-color: #ffdddd; border: 1px solid #ff4b4b; border-radius: 2px;"></span>
-          <span>> 13 mph</span>
+        <div style="display: flex; align-items: center; gap: 8px;">
+          <span style="color: #4b5563;">Thunder (%):</span>
+          <span>⚡: 1–24%</span>
+          <span>⚡⚡: 25–49%</span>
+          <span>⚡⚡⚡: ≥50%</span>
         </div>
       </div>
     </div>
