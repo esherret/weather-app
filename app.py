@@ -3,8 +3,32 @@ import requests
 import streamlit as st
 
 st.set_page_config(
-    page_title="Weather Window Monitor", page_icon="🌤️", layout="centered"
+    page_title="Weather Window Monitor", page_icon="🌤️", layout="wide"
 )
+
+# Custom CSS to increase text sizes and expand container width for desktops/tablets
+st.markdown("""
+<style>
+    /* Expand main container width */
+    .block-container {
+        max-width: 95rem;
+        padding-top: 2rem;
+        padding-right: 2rem;
+        padding-left: 2rem;
+        padding-bottom: 2rem;
+    }
+    
+    /* Increase base font size across the app for computer and tablet */
+    html, body, [class*="css"] {
+        font-size: 16px;
+    }
+    
+    /* Enhance specific text sizing for readability */
+    h3 {
+        font-size: 1.5rem !important;
+    }
+</style>
+""", unsafe_allow_html=True)
 
 HEADERS = {
     "User-Agent": "(myweatherapp.com, developer@myweatherapp.com)",
@@ -180,7 +204,7 @@ def get_wind_svg(direction_str):
       "NNW": 157.5,
   }
   deg = degrees.get(direction_str.upper(), 0)
-  return f'<span style="display: inline-block; transform: rotate({deg}deg); width: 14px; height: 14px; line-height: 14px; text-align: center; vertical-align: middle; margin-right: 4px;">⬆️</span>'
+  return f'<span style="display: inline-block; transform: rotate({deg}deg); width: 16px; height: 16px; line-height: 16px; text-align: center; vertical-align: middle; margin-right: 4px;">⬆️</span>'
 
 
 def get_icon_level(pct):
@@ -331,23 +355,23 @@ else:
     dawn_str, sunrise_str, sunset_str, dusk_str = get_sun_times(LATITUDE, LONGITUDE, date_str_api)
 
     header_html = f'''
-    <div style="margin-bottom: 8px;">
-      <div style="display: flex; align-items: center; gap: 10px;">
+    <div style="margin-bottom: 12px;">
+      <div style="display: flex; align-items: center; gap: 12px;">
         <h3 style="margin: 0;"><span title="{moon_desc}" style="margin-right: 6px;">{moon_emoji}</span>{day_name}</h3>
-        <div style="display: flex; gap: 4px;">
+        <div style="display: flex; gap: 6px;">
     '''
     for win_name in windows_def.keys():
       color = window_colors.get(win_name)
       if color == "PAST":
-        header_html += f'<div title="{win_name} (Past)" style="width: 14px; height: 14px;"></div>'
+        header_html += f'<div title="{win_name} (Past)" style="width: 16px; height: 16px;"></div>'
       elif color:
-        header_html += f'<div title="{win_name}" style="width: 14px; height: 14px; background-color: {color}; border: 1px solid rgba(0,0,0,0.2); border-radius: 3px;"></div>'
+        header_html += f'<div title="{win_name}" style="width: 16px; height: 16px; background-color: {color}; border: 1px solid rgba(0,0,0,0.2); border-radius: 4px;"></div>'
       else:
-        header_html += f'<div title="{win_name} (No Data)" style="width: 14px; height: 14px; background-color: #eee; border: 1px solid rgba(0,0,0,0.2); border-radius: 3px;"></div>'
+        header_html += f'<div title="{win_name} (No Data)" style="width: 16px; height: 16px; background-color: #eee; border: 1px solid rgba(0,0,0,0.2); border-radius: 4px;"></div>'
     header_html += f'''
         </div>
       </div>
-      <div style="font-size: 11px; color: #555; margin-top: 2px; margin-left: 30px;">
+      <div style="font-size: 13px; color: #555; margin-top: 4px; margin-left: 36px; font-weight: 500;">
         First Light: {dawn_str} &nbsp;|&nbsp; Sunrise: {sunrise_str} &nbsp;|&nbsp; Sunset: {sunset_str} &nbsp;|&nbsp; Last Light: {dusk_str}
       </div>
     </div>
@@ -357,7 +381,7 @@ else:
     for window_name, hours in valid_windows.items():
       st.markdown(f"**{window_name}**")
 
-      grid_html = '<div style="display: flex; gap: 6px; overflow-x: auto; padding-bottom: 6px;">'
+      grid_html = '<div style="display: flex; gap: 8px; overflow-x: auto; padding-bottom: 8px;">'
 
       for h in hours:
         dummy_dt = sample_dt.replace(hour=h, minute=0, second=0, microsecond=0)
@@ -441,25 +465,25 @@ else:
                     tide_state = "Rising"
 
           if tide_state == "High":
-            tide_display = '<span style="display: inline-block; width: 22px; height: 22px; line-height: 22px; text-align: center; background-color: white; color: red; font-weight: bold; font-size: 14px; border-radius: 50%; box-shadow: 0 0 2px rgba(0,0,0,0.3);">H</span> High'
+            tide_display = '<span style="display: inline-block; width: 24px; height: 24px; line-height: 24px; text-align: center; background-color: white; color: red; font-weight: bold; font-size: 14px; border-radius: 50%; box-shadow: 0 0 2px rgba(0,0,0,0.3);">H</span> High'
           elif tide_state == "Low":
-            tide_display = '<span style="display: inline-block; width: 22px; height: 22px; line-height: 22px; text-align: center; background-color: white; color: green; font-weight: bold; font-size: 14px; border-radius: 50%; box-shadow: 0 0 2px rgba(0,0,0,0.3);">L</span> Low'
+            tide_display = '<span style="display: inline-block; width: 24px; height: 24px; line-height: 24px; text-align: center; background-color: white; color: green; font-weight: bold; font-size: 14px; border-radius: 50%; box-shadow: 0 0 2px rgba(0,0,0,0.3);">L</span> Low'
           elif tide_state == "Rising":
-            tide_display = '<span style="font-weight: bold; font-size: 18px;">↗</span>&nbsp;&nbsp;<span style="font-size: 9px; font-weight: normal;">Rising</span>'
+            tide_display = '<span style="font-weight: bold; font-size: 20px;">↗</span>&nbsp;&nbsp;<span style="font-size: 11px; font-weight: normal;">Rising</span>'
           else:
-            tide_display = '<span style="font-weight: bold; font-size: 18px;">↘</span>&nbsp;&nbsp;<span style="font-size: 9px; font-weight: normal;">Falling</span>'
+            tide_display = '<span style="font-weight: bold; font-size: 20px;">↘</span>&nbsp;&nbsp;<span style="font-size: 11px; font-weight: normal;">Falling</span>'
 
           grid_html += f"""
-          <div style="flex: 1; min-width: 85px; background-color: {box_bg}; border: 2px solid {box_border}; border-radius: 6px; padding: 6px; text-align: center; font-size: 11px; color: black;">
-            <div style="font-weight: bold; margin-bottom: 4px; border-bottom: 1px solid rgba(0,0,0,0.1);">{time_label}</div>
-            <div style="margin-bottom: 4px; background-color: {wind_bg}; border-radius: 4px; padding: 2px;" title="Wind: {wind_val} mph {wind_dir}">
-              <div>{int(wind_val)}mph</div>
-              <div>{pointer_svg}<span style="font-size: 9px;">{wind_dir}</span></div>
+          <div style="flex: 1; min-width: 100px; background-color: {box_bg}; border: 2px solid {box_border}; border-radius: 8px; padding: 8px; text-align: center; font-size: 13px; color: black;">
+            <div style="font-weight: bold; font-size: 14px; margin-bottom: 6px; border-bottom: 1px solid rgba(0,0,0,0.1);">{time_label}</div>
+            <div style="margin-bottom: 6px; background-color: {wind_bg}; border-radius: 5px; padding: 4px;" title="Wind: {wind_val} mph {wind_dir}">
+              <div style="font-size: 13px; font-weight: bold;">{int(wind_val)}mph</div>
+              <div>{pointer_svg}<span style="font-size: 11px;">{wind_dir}</span></div>
             </div>
-            <div style="margin-bottom: 2px; background-color: {rain_bg}; border-radius: 4px; padding: 2px;" title="Chance of Rain: {pop}%">{rain_icons} <span style="font-size:9px;">{pop}%</span></div>
-            <div style="margin-bottom: 4px; background-color: {thunder_bg}; border-radius: 4px; padding: 2px;" title="Chance of Thunder: {thunder_pct}%"><span style="text-shadow: -1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000, 1px 1px 0 #000; color: #ffeb3b;">{thunder_icons}</span> <span style="font-size:9px;">{thunder_pct}%</span></div>
-            <div style="margin-bottom: 2px; font-size: 11px; background-color: #f0f9ff; border-radius: 3px; padding: 3px;" title="Tide">{tide_display}</div>
-            <div style="font-size: 10px; font-weight: bold; background-color: #f8fafc; border-radius: 3px; padding: 2px;" title="Temperature & Sky"><span style="font-size: 20px; vertical-align: middle;">{cloud_icon}</span> {temp_val}°{temp_unit}</div>
+            <div style="margin-bottom: 4px; background-color: {rain_bg}; border-radius: 5px; padding: 4px;" title="Chance of Rain: {pop}%">{rain_icons} <span style="font-size:11px; font-weight: 500;">{pop}%</span></div>
+            <div style="margin-bottom: 6px; background-color: {thunder_bg}; border-radius: 5px; padding: 4px;" title="Chance of Thunder: {thunder_pct}%"><span style="text-shadow: -1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000, 1px 1px 0 #000; color: #ffeb3b;">{thunder_icons}</span> <span style="font-size:11px; font-weight: 500;">{thunder_pct}%</span></div>
+            <div style="margin-bottom: 4px; font-size: 12px; background-color: #f0f9ff; border-radius: 4px; padding: 4px;" title="Tide">{tide_display}</div>
+            <div style="font-size: 12px; font-weight: bold; background-color: #f8fafc; border-radius: 4px; padding: 4px;" title="Temperature & Sky"><span style="font-size: 24px; vertical-align: middle;">{cloud_icon}</span> {temp_val}°{temp_unit}</div>
           </div>
           """
         else:
@@ -472,9 +496,9 @@ else:
             msg = "Data not yet available"
 
           grid_html += f"""
-          <div style="flex: 1; min-width: 85px; background-color: #f8f9fa; border: 2px solid #d1d5db; border-radius: 6px; padding: 6px; text-align: center; font-size: 11px; color: #9ca3af;">
-            <div style="font-weight: bold; margin-bottom: 4px; border-bottom: 1px solid rgba(0,0,0,0.1);">{time_label}</div>
-            <div style="margin-top: 15px; font-size: 9px; font-style: italic; line-height: 1.2;">{msg}</div>
+          <div style="flex: 1; min-width: 100px; background-color: #f8f9fa; border: 2px solid #d1d5db; border-radius: 8px; padding: 8px; text-align: center; font-size: 13px; color: #9ca3af;">
+            <div style="font-weight: bold; font-size: 14px; margin-bottom: 6px; border-bottom: 1px solid rgba(0,0,0,0.1);">{time_label}</div>
+            <div style="margin-top: 25px; font-size: 11px; font-style: italic; line-height: 1.3;">{msg}</div>
           </div>
           """
 
