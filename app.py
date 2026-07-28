@@ -259,7 +259,7 @@ else:
           box_bg = "#fff"
         elif is_yellow:
           box_border = "#ffeb3b"
-          box_bg = "#fff"
+          box_bg = NumPy = "#fff"
         else:
           box_border = "#21c354"
           box_bg = "#fff"
@@ -273,21 +273,51 @@ else:
 
         local_dt = start_time.astimezone().replace(tzinfo=None)
         tide_key = local_dt.replace(minute=0, second=0, microsecond=0)
-        tide_val = tides_data.get(tide_key)
-
+        
+        # Pull 6-minute interval predictions around this hour to find absolute true peaks/troughs accurately
         tide_state = "N/A"
-        if tide_val is not None:
-          prev_dt = tide_key - timedelta(hours=1)
-          next_dt = tide_key + timedelta(hours=1)
-          prev_val = tides_data.get(prev_dt, tide_val)
-          next_val = tides_data.get(next_dt, tide_val)
+        if tides_data:
+          # Check local window of +/- 30 minutes around this hour mark
+          window_start_chk = local_dt - timedelta(minutes=35)
+          window_end_chk = local_dt + timedelta(minutes=35)
+          
+          local_preds = [(dt, val) for dt, val in tides_data.items() if window_start_chk <= dt <= window_end_chk]
+          
+          is_peak = False
+          is_trough = False
+          
+          if local_preds:
+            # Sort by value to find local extremum in this block
+            # Let's check if there is an actual turning point (peak/trough) right near this hour
+            # We look at a wider pool of predictions around this specific hour key
+            broader_pool = [(dt, val) for dt, val in tides_data.items() if local_dt - timedelta(hours=1, minutes=30) <= dt <= local_dt + timedelta(hours=1, minutes=30)]
+            if broader_pool:
+              # find index of closest to local_dt
+              closest_idx = min(range(len(broader_pool)), key=lambda idx: abs(broader_pool[idx][0] - local_dt))
+              curr_dt, curr_val = broader_pool[closest_idx]
+              
+              if closest_idx > 0 and closest_idx < len(broader_pool) - 1:
+                prev_val = broader_pool[closest_idx - 1][1]
+                next_val = broader_pool[closest_idx + 1][1]
+                if curr_val >= prev_val and curr_val >= next_val:
+                  is_peak = True
+                elif curr_val <= prev_val and curr_val <= next_val:
+                  is_trough = True
 
-          if tide_val >= prev_val and tide_val >= next_val:
+          if is_peak:
             tide_state = "High Tide"
-          elif tide_val <= prev_val and tide_val <= next_val:
+          elif is_trough:
             tide_state = "Low Tide"
           else:
-            if next_val > prev_val:
+            # Check general slope using adjacent hourly keys
+            prev_dt = tide_key - timedelta(hours=1)
+            next_dt = tide_key + timedelta(hours=1)
+            prev_val = tides_data.get(prev_dt, tides_data.get(tide_key, 0))
+            next_val = tides_data.get(next_dt, tides_data.get(tide_key, 0))
+            diff = next_val - prev_val
+            if abs(diff) < 0.03:
+              tide_state = "Slack Tide"
+            elif diff > 0:
               tide_state = "Rising Tide"
             else:
               tide_state = "Falling Tide"
