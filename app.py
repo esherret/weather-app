@@ -305,15 +305,15 @@ else:
                   else:
                     tide_state = "Rising"
 
-          # Formatting for High (red H in white circle), Low (green L in white circle), Rising/Falling text matching wind direction style
+          # Formatting for High (red H in white circle), Low (green L in white circle), Rising/Falling text restored to larger bold format
           if tide_state == "High":
             tide_display = '<span style="display: inline-block; width: 22px; height: 22px; line-height: 22px; text-align: center; background-color: white; color: red; font-weight: bold; font-size: 14px; border-radius: 50%; box-shadow: 0 0 2px rgba(0,0,0,0.3);">H</span>'
           elif tide_state == "Low":
             tide_display = '<span style="display: inline-block; width: 22px; height: 22px; line-height: 22px; text-align: center; background-color: white; color: green; font-weight: bold; font-size: 14px; border-radius: 50%; box-shadow: 0 0 2px rgba(0,0,0,0.3);">L</span>'
           elif tide_state == "Rising":
-            tide_display = '<span>↗</span><span style="font-size: 9px;">Rising</span>'
+            tide_display = '<span style="color: black; font-weight: bold; font-size: 14px;">↗ Rising</span>'
           else:
-            tide_display = '<span>↘</span><span style="font-size: 9px;">Falling</span>'
+            tide_display = '<span style="color: black; font-weight: bold; font-size: 14px;">↘ Falling</span>'
 
           grid_html += f"""
           <div style="flex: 1; min-width: 85px; background-color: {box_bg}; border: 2px solid {box_border}; border-radius: 6px; padding: 6px; text-align: center; font-size: 11px; color: black;">
@@ -324,7 +324,7 @@ else:
             </div>
             <div style="margin-bottom: 2px; background-color: {rain_bg}; border-radius: 4px; padding: 2px;" title="Chance of Rain: {pop}%">{rain_icons} <span style="font-size:9px;">{pop}%</span></div>
             <div style="margin-bottom: 4px; background-color: {thunder_bg}; border-radius: 4px; padding: 2px;" title="Chance of Thunder: {thunder_pct}%"><span style="text-shadow: -1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000, 1px 1px 0 #000; color: #ffeb3b;">{thunder_icons}</span> <span style="font-size:9px;">{thunder_pct}%</span></div>
-            <div style="font-size: 9px; background-color: #f0f9ff; border-radius: 3px; padding: 2px;" title="Tide">{tide_display}</div>
+            <div style="font-size: 10px; font-weight: bold; background-color: #f0f9ff; border-radius: 3px; padding: 3px;" title="Tide">{tide_display}</div>
           </div>
           """
         else:
