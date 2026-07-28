@@ -459,7 +459,7 @@ else:
             box_border = "#21c354"
           box_bg = "#fff"
 
-          # Determine triggering reason icon(s) for red or yellow boxes
+          # Determine triggering reason icon(s) for red or yellow boxes matched to standard box text sizing
           trigger_icons = ""
           if is_red or is_yellow:
             reasons = []
@@ -470,7 +470,7 @@ else:
             if thunder_pct > (25 if is_red else 15):
               reasons.append("⚡")
             if reasons:
-              trigger_icons = f' <span style="font-size: 11px; margin-left: 4px;" title="Triggered by: {' '.join(reasons)}">{' '.join(reasons)}</span>'
+              trigger_icons = f' <span class="box-text" style="margin-left: 4px;" title="Triggered by: {' '.join(reasons)}">{' '.join(reasons)}</span>'
 
           wind_bg = get_rating_bg_color(wind_val, is_wind=True)
           rain_bg = get_rating_bg_color(pop, is_wind=False)
