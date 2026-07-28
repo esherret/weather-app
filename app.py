@@ -268,10 +268,48 @@ else:
           rain_icons = "💧" * rain_level if rain_level > 0 else "—"
           thunder_icons = "⚡" * thunder_level if thunder_level > 0 else "—"
 
-          # Look up NOAA tide height for this specific hour if available
+          # Tide calculation and state determination for the hour block
           local_dt = dummy_dt.replace(tzinfo=None)
           tide_val = tides_data.get(local_dt)
           tide_str = f"{tide_val:.1f} ft" if tide_val is not None else "—"
+
+          tide_state = "Rising"
+          if tides_data:
+            # Check 6-minute predictions falling within this hour (from hh:00 to hh:59)
+            hour_preds = [(dt, val) for dt, val in tides_data.items() if dt.date() == local_dt.date() and dt.hour == local_dt.hour]
+            
+            found_extreme = None
+            if hour_preds:
+              for dt_p, val_p in hour_preds:
+                prev_v = tides_data.get(dt_p - timedelta(minutes=6), val_p)
+                next_v = tides_data.get(dt_p + timedelta(minutes=6), val_p)
+                if val_p >= prev_v and val_p >= next_v:
+                  found_extreme = "High"
+                  break
+                elif val_p <= prev_v and val_p <= next_v:
+                  found_extreme = "Low"
+                  break
+
+            if found_extreme:
+              tide_state = found_extreme
+            else:
+              # Fallback to trend comparison across the hour boundary
+              next_hr_dt = local_dt + timedelta(hours=1)
+              v_curr = tides_data.get(local_dt)
+              v_next = tides_data.get(next_hr_dt)
+              if v_curr is not None and v_next is not None:
+                if v_next < v_curr:
+                  tide_state = "Falling"
+                else:
+                  tide_state = "Rising"
+              else:
+                prev_hr_dt = local_dt - timedelta(hours=1)
+                v_prev = tides_data.get(prev_hr_dt, v_curr)
+                if v_curr is not None and v_prev is not None:
+                  if v_curr < v_prev:
+                    tide_state = "Falling"
+                  else:
+                    tide_state = "Rising"
 
           grid_html += f"""
           <div style="flex: 1; min-width: 85px; background-color: {box_bg}; border: 2px solid {box_border}; border-radius: 6px; padding: 6px; text-align: center; font-size: 11px; color: black;">
@@ -281,8 +319,8 @@ else:
               <div>{pointer_svg}<span style="font-size: 9px;">{wind_dir}</span></div>
             </div>
             <div style="margin-bottom: 2px; background-color: {rain_bg}; border-radius: 4px; padding: 2px;" title="Chance of Rain: {pop}%">{rain_icons} <span style="font-size:9px;">{pop}%</span></div>
-            <div style="margin-bottom: 2px; background-color: {thunder_bg}; border-radius: 4px; padding: 2px;" title="Chance of Thunder: {thunder_pct}%"><span style="text-shadow: -1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000, 1px 1px 0 #000; color: #ffeb3b;">{thunder_icons}</span> <span style="font-size:9px;">{thunder_pct}%</span></div>
-            <div style="font-size: 9px; color: #0369a1; font-weight: bold; background-color: #f0f9ff; border-radius: 3px; padding: 2px;" title="Tide Height">🌊 {tide_str}</div>
+            <div style="margin-bottom: 4px; background-color: {thunder_bg}; border-radius: 4px; padding: 2px;" title="Chance of Thunder: {thunder_pct}%"><span style="text-shadow: -1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000, 1px 1px 0 #000; color: #ffeb3b;">{thunder_icons}</span> <span style="font-size:9px;">{thunder_pct}%</span></div>
+            <div style="font-size: 9px; color: #0369a1; font-weight: bold; background-color: #f0f9ff; border-radius: 3px; padding: 2px;" title="Tide">🌊 {tide_str} ({tide_state})</div>
           </div>
           """
         else:
