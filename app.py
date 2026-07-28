@@ -6,9 +6,15 @@ st.set_page_config(
     page_title="Weather Window Monitor", page_icon="🌤️", layout="wide"
 )
 
-# Custom CSS targeting computer and tablet viewports via media queries, leaving iPhone untouched
+# Custom CSS targeting computer/tablet viewports to increase font sizes by ~50% for specific elements
+# and remove bolding from windspeed on both platforms.
 st.markdown("""
 <style>
+    /* Remove bolding from wind speed across all platforms */
+    .wind-speed-val {
+        font-weight: normal !important;
+    }
+
     @media (min-width: 768px) {
         .block-container {
             max-width: 95rem;
@@ -24,6 +30,23 @@ st.markdown("""
         
         h3 {
             font-size: 1.8rem !important;
+        }
+
+        /* Increase size by ~50% for specified elements on computer/tablet */
+        .desktop-time {
+            font-size: 1.25rem !important;
+        }
+        .desktop-wind {
+            font-size: 1.15rem !important;
+        }
+        .desktop-metric {
+            font-size: 1.15rem !important;
+        }
+        .desktop-tide {
+            font-size: 1.2rem !important;
+        }
+        .desktop-temp {
+            font-size: 1.3rem !important;
         }
     }
 </style>
@@ -474,15 +497,15 @@ else:
 
           grid_html += f"""
           <div style="flex: 1; min-width: 100px; background-color: {box_bg}; border: 2px solid {box_border}; border-radius: 8px; padding: 8px; text-align: center; font-size: 13px; color: black;">
-            <div style="font-weight: bold; font-size: 14px; margin-bottom: 6px; border-bottom: 1px solid rgba(0,0,0,0.1);">{time_label}</div>
+            <div class="desktop-time" style="font-weight: bold; font-size: 14px; margin-bottom: 6px; border-bottom: 1px solid rgba(0,0,0,0.1);">{time_label}</div>
             <div style="margin-bottom: 6px; background-color: {wind_bg}; border-radius: 5px; padding: 4px;" title="Wind: {wind_val} mph {wind_dir}">
-              <div style="font-size: 13px; font-weight: bold;">{int(wind_val)}mph</div>
-              <div>{pointer_svg}<span style="font-size: 11px;">{wind_dir}</span></div>
+              <div class="desktop-wind wind-speed-val" style="font-size: 13px;">{int(wind_val)}mph</div>
+              <div class="desktop-wind">{pointer_svg}<span style="font-size: 11px;">{wind_dir}</span></div>
             </div>
-            <div style="margin-bottom: 4px; background-color: {rain_bg}; border-radius: 5px; padding: 4px;" title="Chance of Rain: {pop}%">{rain_icons} <span style="font-size:11px; font-weight: 500;">{pop}%</span></div>
-            <div style="margin-bottom: 6px; background-color: {thunder_bg}; border-radius: 5px; padding: 4px;" title="Chance of Thunder: {thunder_pct}%"><span style="text-shadow: -1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000, 1px 1px 0 #000; color: #ffeb3b;">{thunder_icons}</span> <span style="font-size:11px; font-weight: 500;">{thunder_pct}%</span></div>
-            <div style="margin-bottom: 4px; font-size: 12px; background-color: #f0f9ff; border-radius: 4px; padding: 4px;" title="Tide">{tide_display}</div>
-            <div style="font-size: 12px; font-weight: bold; background-color: #f8fafc; border-radius: 4px; padding: 4px;" title="Temperature & Sky"><span style="font-size: 24px; vertical-align: middle;">{cloud_icon}</span> {temp_val}°{temp_unit}</div>
+            <div class="desktop-metric" style="margin-bottom: 4px; background-color: {rain_bg}; border-radius: 5px; padding: 4px;" title="Chance of Rain: {pop}%">{rain_icons} <span style="font-size:11px; font-weight: 500;">{pop}%</span></div>
+            <div class="desktop-metric" style="margin-bottom: 6px; background-color: {thunder_bg}; border-radius: 5px; padding: 4px;" title="Chance of Thunder: {thunder_pct}%"><span style="text-shadow: -1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000, 1px 1px 0 #000; color: #ffeb3b;">{thunder_icons}</span> <span style="font-size:11px; font-weight: 500;">{thunder_pct}%</span></div>
+            <div class="desktop-tide" style="margin-bottom: 4px; font-size: 12px; background-color: #f0f9ff; border-radius: 4px; padding: 4px;" title="Tide">{tide_display}</div>
+            <div class="desktop-temp" style="font-size: 12px; font-weight: bold; background-color: #f8fafc; border-radius: 4px; padding: 4px;" title="Temperature & Sky"><span style="font-size: 24px; vertical-align: middle;">{cloud_icon}</span> {temp_val}°{temp_unit}</div>
           </div>
           """
         else:
@@ -496,7 +519,7 @@ else:
 
           grid_html += f"""
           <div style="flex: 1; min-width: 100px; background-color: #f8f9fa; border: 2px solid #d1d5db; border-radius: 8px; padding: 8px; text-align: center; font-size: 13px; color: #9ca3af;">
-            <div style="font-weight: bold; font-size: 14px; margin-bottom: 6px; border-bottom: 1px solid rgba(0,0,0,0.1);">{time_label}</div>
+            <div class="desktop-time" style="font-weight: bold; font-size: 14px; margin-bottom: 6px; border-bottom: 1px solid rgba(0,0,0,0.1);">{time_label}</div>
             <div style="margin-top: 25px; font-size: 11px; font-style: italic; line-height: 1.3;">{msg}</div>
           </div>
           """
