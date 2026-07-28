@@ -90,8 +90,9 @@ def fetch_tides(station_id):
   return {}
 
 
+@st.cache_data(ttl=3600)
 def get_sun_times(lat, lon, date_str):
-  # Requesting civil twilight data by passing formatted=0 to get UTC timestamps
+  # Fetching solar metadata directly from Sunrise-Sunset API using precise lat/lon coordinates
   url = f"https://api.sunrise-sunset.org/json?lat={lat}&lng={lon}&date={date_str}&formatted=0"
   try:
     res = requests.get(url, timeout=3)
@@ -99,14 +100,14 @@ def get_sun_times(lat, lon, date_str):
       data = res.json()
       if data.get("status") == "OK":
         results = data["results"]
-        # Civil twilight corresponds to first/last light (sun 6 degrees below horizon)
         dawn_utc = datetime.fromisoformat(results["civil_twilight_begin"])
         dusk_utc = datetime.fromisoformat(results["civil_twilight_end"])
         rise_utc = datetime.fromisoformat(results["sunrise"])
         set_utc = datetime.fromisoformat(results["sunset"])
         
-        # Explicit Eastern Daylight Time offset for US Eastern zip codes (UTC-4)
-        local_tz = timezone(timedelta(hours=-4))
+        # Dynamically determine the local timezone offset based on the longitude of the entered ZIP code coordinates
+        offset_hours = round(lon / 15.0)
+        local_tz = timezone(timedelta(hours=offset_hours))
         
         dawn_local = dawn_utc.astimezone(local_tz)
         dusk_local = dusk_utc.astimezone(local_tz)
