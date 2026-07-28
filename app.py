@@ -6,7 +6,7 @@ st.set_page_config(
     page_title="Weather Window Monitor", page_icon="🌤️", layout="wide"
 )
 
-# Custom CSS to ensure compact card sizing on mobile portrait screens so all 4 boxes fit cleanly
+# Custom CSS for styling the header row background using the calculated box border color
 st.markdown("""
 <style>
     .weather-card * {
@@ -45,7 +45,6 @@ st.markdown("""
         .box-text {
             font-size: 0.65rem !important;
         }
-        /* Reduce padding and minimum width on mobile portrait to fit 4 boxes cleanly */
         .weather-card {
             min-width: 0 !important;
             padding: 4px !important;
@@ -499,7 +498,7 @@ else:
 
           grid_html += f"""
           <div class="weather-card" style="flex: 1; min-width: 0; background-color: {box_bg}; border: 2px solid {box_border}; border-radius: 6px; padding: 4px; text-align: center; color: black;">
-            <div class="box-time" style="margin-bottom: 4px; border-bottom: 1px solid rgba(0,0,0,0.1);">{time_label}</div>
+            <div class="box-time" style="margin-bottom: 4px; background-color: {box_border}; color: black; border-radius: 3px; padding: 2px; border-bottom: 1px solid rgba(0,0,0,0.1);">{time_label}</div>
             <div style="margin-bottom: 4px; background-color: {wind_bg}; border-radius: 4px; padding: 2px;" title="Wind: {wind_val} mph {wind_dir}">
               <div class="box-text">{int(wind_val)}mph</div>
               <div class="box-text">{pointer_svg}<span>{wind_dir}</span></div>
@@ -521,7 +520,7 @@ else:
 
           grid_html += f"""
           <div class="weather-card" style="flex: 1; min-width: 0; background-color: #f8f9fa; border: 2px solid #d1d5db; border-radius: 6px; padding: 4px; text-align: center; color: #9ca3af;">
-            <div class="box-time" style="margin-bottom: 4px; border-bottom: 1px solid rgba(0,0,0,0.1);">{time_label}</div>
+            <div class="box-time" style="margin-bottom: 4px; background-color: #d1d5db; color: #374151; border-radius: 3px; padding: 2px; border-bottom: 1px solid rgba(0,0,0,0.1);">{time_label}</div>
             <div style="margin-top: 15px; font-size: 9px; font-style: italic; line-height: 1.2;">{msg}</div>
           </div>
           """
