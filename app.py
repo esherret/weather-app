@@ -7,7 +7,7 @@ st.set_page_config(
     page_title="Ed's Weather Yak", page_icon="🌤️", layout="wide"
 )
 
-# Custom CSS for spacing, top margin to clear Streamlit's toolbar, bolding, sizing, and header shading.
+# Custom CSS for spacing, top margin, responsive input widths, and inline alignment.
 st.markdown("""
 <style>
     .weather-card * {
@@ -15,7 +15,7 @@ st.markdown("""
     }
 
     .main .block-container {
-        padding-top: 2rem !important;
+        padding-top: 0.5rem !important;
     }
 
     @media (min-width: 768px) {
@@ -61,6 +61,16 @@ st.markdown("""
         .wind-dir-space {
             display: inline;
             width: auto;
+        }
+        
+        /* Force text input and button columns to share the row and keep the input short */
+        [data-testid="column"]:nth-of-type(1) {
+            width: 68% !important;
+            flex: 68% !important;
+        }
+        [data-testid="column"]:nth-of-type(2) {
+            width: 32% !important;
+            flex: 32% !important;
         }
     }
 </style>
@@ -318,7 +328,7 @@ for label, query in PRESET_LOCATIONS.items():
 # Page title and location input stacked vertically with button right beside input
 st.title("Ed's Weather Yak")
 
-col_input, col_btn = st.columns([3.5, 1])
+col_input, col_btn = st.columns([2.6, 1])
 
 with col_input:
   def handle_top_location_change():
@@ -332,7 +342,7 @@ with col_input:
       key="top_location_input",
       placeholder="Address or zip...",
       label_visibility="collapsed",
-      on_change=handle_top_location_change
+      on_change=handle_top_location_change,
   )
 
 with col_btn:
