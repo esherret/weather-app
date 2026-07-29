@@ -351,12 +351,23 @@ def get_rating_bg_color(val, is_wind=False):
       return "#e6f4ea"
 
 
+# Check URL parameters for initial location/zip configuration
+url_zip = st.query_params.get("zip")
+url_location = st.query_params.get("location")
+
+if url_zip:
+  initial_address = url_zip
+elif url_location:
+  initial_address = url_location
+else:
+  initial_address = "Kelly Park, Merritt Island, FL"
+
 # Initialize session state for active query
 if "location_query" not in st.session_state:
-  st.session_state["location_query"] = "Kelly Park, Merritt Island, FL"
+  st.session_state["location_query"] = initial_address
 
 if "top_location_input" not in st.session_state:
-  st.session_state["top_location_input"] = "Kelly Park, Merritt Island, FL"
+  st.session_state["top_location_input"] = initial_address
 
 # Sidebar configuration for quick location links
 st.sidebar.header("Quick Locations")
@@ -366,7 +377,7 @@ for label, query in PRESET_LOCATIONS.items():
     st.session_state["top_location_input"] = query
     st.rerun()
 
-# Sidebar Help Expander (Option 1)
+# Sidebar Help Expander
 with st.sidebar.expander("📖 App Help & Guide"):
   st.markdown("""
     ### How Colors Are Calculated
