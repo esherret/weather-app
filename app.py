@@ -392,6 +392,11 @@ with st.sidebar.expander("📖 App Help & Guide"):
     
     ### Tide Calculation
     Uses the nearest NOAA station to map local MLLW water levels, displaying High (`H`), Low (`L`), Rising (`↗`), or Falling (`↘`) trends hourly.
+    
+    ### URL Parameters
+    You can bookmark or share custom URLs to open the app directly with a pre-loaded zip code or location:
+    * **By Zip Code:** `https://weather-app-mi.streamlit.app/?zip=32952`
+    * **By Location:** `https://weather-app-mi.streamlit.app/?location=Cocoa%20Beach,FL`
     """)
 
 # Page title pushed to the very top
