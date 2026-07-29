@@ -366,6 +366,23 @@ for label, query in PRESET_LOCATIONS.items():
     st.session_state["top_location_input"] = query
     st.rerun()
 
+# Sidebar Help Expander (Option 1)
+with st.sidebar.expander("📖 App Help & Guide"):
+  st.markdown("""
+    ### How Colors Are Calculated
+    * **Green:** Safe conditions (Wind ≤ 8 mph, Rain/Thunder ≤ 15%).
+    * **Yellow:** Moderate conditions (Wind 8.1–13 mph, Rain/Thunder 16%–25%).
+    * **Red:** Hazardous conditions (Wind > 13 mph, Rain/Thunder > 25%).
+    
+    ### Rain & Thunder Icons
+    * **1–24%:** 💧 or ⚡
+    * **25–49%:** 💧💧 or ⚡⚡
+    * **≥50%:** 💧💧💧 or ⚡⚡⚡
+    
+    ### Tide Calculation
+    Uses the nearest NOAA station to map local MLLW water levels, displaying High (`H`), Low (`L`), Rising (`↗`), or Falling (`↘`) trends hourly.
+    """)
+
 # Page title pushed to the very top
 st.markdown("## Ed's Weather Yak")
 
