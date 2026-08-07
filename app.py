@@ -170,16 +170,20 @@ def fetch_forecast(lat, lon):
   points_url = f"https://api.weather.gov/points/{lat},{lon}"
   response = requests.get(points_url, headers=HEADERS)
   if response.status_code != 200:
-    return None
+    return None, None
 
   point_data = response.json()
   forecast_hourly_url = point_data["properties"]["forecastHourly"]
+  forecast_grid_url = point_data["properties"]["forecastGridData"]
 
   forecast_response = requests.get(forecast_hourly_url, headers=HEADERS)
   if forecast_response.status_code != 200:
-    return None
+    return None, None
 
-  return forecast_response.json()["properties"]["periods"]
+  grid_response = requests.get(forecast_grid_url, headers=HEADERS)
+  grid_data = grid_response.json() if grid_response.status_code == 200 else {}
+
+  return forecast_response.json()["properties"]["periods"], grid_data
 
 
 @st.cache_data(ttl=3600)
@@ -309,17 +313,6 @@ def get_wind_svg(direction_str):
   return f'<span style="display: inline-block; transform: rotate({deg}deg); width: 14px; height: 14px; line-height: 14px; text-align: center; vertical-align: middle; margin-right: 4px;">⬆️</span>'
 
 
-def get_icon_level(pct):
-  if pct >= 50:
-      return 3
-  elif pct >= 25:
-      return 2
-  elif pct > 0:
-      return 1
-  else:
-      return 0
-
-
 def get_cloud_icon(short_fc):
   text = short_fc.lower()
   if "sunny" in text or "clear" in text:
@@ -349,6 +342,41 @@ def get_rating_bg_color(val, is_wind=False):
       return "#fffacc"
     else:
       return "#e6f4ea"
+
+
+def get_instability_rating(cape_val):
+  if cape_val is None or cape_val <= 1000:
+    return "!"
+  elif cape_val <= 2000:
+    return "!!"
+  else:
+    return "!!!"
+
+
+def extract_grid_value(grid_data, param_name, target_dt):
+  try:
+    prop = grid_data.get("properties", {})
+    values = prop.get(param_name, {}).get("values", [])
+    for entry in values:
+      valid_time_str = entry.get("validTime", "")
+      parts = valid_time_str.split("/")
+      start_time = datetime.fromisoformat(parts[0].replace("Z", "+00:00"))
+      duration_str = parts[1] if len(parts) > 1 else "PT1H"
+      
+      # parse simple duration like PT1H or PT3H
+      hours_add = 1
+      if "PT" in duration_str and "H" in duration_str:
+        try:
+          hours_add = int(duration_str.replace("PT", "").replace("H", ""))
+        except:
+          pass
+      end_time = start_time + timedelta(hours=hours_add)
+      
+      if start_time <= target_dt < end_time:
+        return entry.get("value")
+  except Exception:
+    pass
+  return None
 
 
 # Check URL parameters for initial location/zip configuration
@@ -385,6 +413,11 @@ with st.sidebar.expander("📖 App Help & Guide"):
     * **Yellow:** Moderate conditions (Wind 8.1–13 mph, Rain/Thunder 16%–25%).
     * **Red:** Hazardous conditions (Wind > 13 mph, Rain/Thunder > 25%).
     
+    ### Instability Rating (CAPE)
+    * **!:** 0 – 1,000 J/kg (Weakly Unstable)
+    * **!!:** 1,001 – 2,000 J/kg (Moderately Unstable)
+    * **!!!:** 2,001+ J/kg (Very Unstable)
+
     ### Rain & Thunder Icons
     * **1–24%:** 💧 or ⚡
     * **25–49%:** 💧💧 or ⚡⚡
@@ -434,7 +467,7 @@ else:
   display_title_location = location_name.split(",")[0] if location_name else "Weather"
 
   station_id = fetch_nearest_tide_station(LATITUDE, LONGITUDE)
-  periods = fetch_forecast(LATITUDE, LONGITUDE)
+  periods, grid_data = fetch_forecast(LATITUDE, LONGITUDE)
   tides_data = fetch_tides(station_id)
 
   if not periods:
@@ -559,7 +592,7 @@ else:
           time_label = dummy_dt.strftime("%l%p").strip()
 
           if h in day_hours:
-            _, period = day_hours[h]
+            start_dt, period = day_hours[h]
             wind_str = period["windSpeed"]
             wind_val = float(wind_str.split()[0])
             wind_dir = period.get("windDirection", "N")
@@ -577,6 +610,13 @@ else:
             has_thunder = "thunder" in text_blob or "storm" in text_blob
             thunder_pct = 80 if has_thunder and "slight chance" not in short_fc.lower() else (30 if has_thunder else 0)
 
+            # Retrieve CAPE score from NWS grid data, fallback to 500 if unavailable
+            cape_val = extract_grid_value(grid_data, "convectiveAvailablePotentialEnergy", start_dt)
+            if cape_val is None:
+              cape_val = 500.0
+            instability_str = get_instability_rating(cape_val)
+            display_time_label = f"{time_label} {instability_str}"
+
             is_red = wind_val > 13.0 or pop > 25 or thunder_pct > 25
             is_yellow = not is_red and (wind_val > 8.0 or pop > 15 or thunder_pct > 15)
 
@@ -588,17 +628,7 @@ else:
               box_border = "#21c354"
             box_bg = "#fff"
 
-            # Icons in the time box are commented out for easy restoration later:
             trigger_icons = ""
-            # reasons = []
-            # if wind_val > 8.0:
-            #   reasons.append('<span style="text-shadow: -1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000, 1px 1px 0 #000; color: #ffffff;">🚩</span>')
-            # if pop > 15:
-            #   reasons.append("💧")
-            # if thunder_pct > 15:
-            #   reasons.append('<span style="text-shadow: -1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000, 1px 1px 0 #000; color: #ffeb3b;">⚡</span>')
-            # if reasons:
-            #   trigger_icons = f'<br><span class="box-text" style="vertical-align: middle;">{"".join(reasons)}</span>'
 
             wind_bg = get_rating_bg_color(wind_val, is_wind=True)
             rain_bg = get_rating_bg_color(pop, is_wind=False)
@@ -657,7 +687,7 @@ else:
 
             grid_html += f"""
             <div class="weather-card" style="flex: 1; min-width: 0; background-color: {box_bg}; border: 2px solid {box_border}; border-radius: 6px; padding: 4px; text-align: center; color: black;">
-              <div class="box-time" style="margin-bottom: 4px; background-color: {box_border}; color: black; border-radius: 3px; padding: 2px; border-bottom: 1px solid rgba(0,0,0,0.1);">{time_label}{trigger_icons}</div>
+              <div class="box-time" style="margin-bottom: 4px; background-color: {box_border}; color: black; border-radius: 3px; padding: 2px; border-bottom: 1px solid rgba(0,0,0,0.1);" title="CAPE: {cape_val:.1f} J/kg">{display_time_label}{trigger_icons}</div>
               <div style="margin-bottom: 4px; background-color: {wind_bg}; border-radius: 4px; padding: 2px;" title="Wind: {wind_val} mph {wind_dir}">
                 <div class="box-text">{int(wind_val)}mph</div>
                 <div class="box-text">{pointer_svg}<span class="wind-dir-space"></span><span>{wind_dir}</span></div>
@@ -706,6 +736,12 @@ else:
             <span style="display: inline-block; width: 10px; height: 10px; background-color: #ffdddd; border: 1px solid #ff4b4b; border-radius: 2px;"></span>
             <span>>13 mph</span>
           </div>
+        </div>
+        <div style="display: flex; align-items: center; gap: 8px;">
+          <span style="color: #4b5563;">Instability:</span>
+          <span>!: 0–1000 J/kg</span>
+          <span>!!: 1001–2000 J/kg</span>
+          <span>!!!: >2000 J/kg</span>
         </div>
         <div style="display: flex; align-items: center; gap: 8px;">
           <span style="color: #4b5563;">Rain (%):</span>
