@@ -356,7 +356,9 @@ def get_rating_bg_color(val, is_wind=False):
 
 
 def get_instability_rating(cape_val):
-  if cape_val is None or cape_val <= 1000:
+  if cape_val is None:
+    return "!"
+  elif cape_val <= 1000:
     return "!"
   elif cape_val <= 2000:
     return "!!"
@@ -426,7 +428,7 @@ with st.sidebar.expander("📖 App Help & Guide"):
     ### Instability Rating (CAPE)
     * **!:** 0 – 1,000 J/kg (Weakly Unstable)
     * **!!:** 1,001 – 2,000 J/kg (Moderately Unstable)
-    * **!!!:** 2,001+ J/kg (Very Unstable)
+    * **!!!:** > 2,000 J/kg (Very Unstable)
 
     ### Rain & Thunder Icons
     * **1–24%:** 💧 or ⚡
@@ -620,10 +622,17 @@ else:
             has_thunder = "thunder" in text_blob or "storm" in text_blob
             thunder_pct = 80 if has_thunder and "slight chance" not in short_fc.lower() else (30 if has_thunder else 0)
 
-            # Retrieve CAPE score from NWS grid data, fallback to 500 if unavailable
+            # Retrieve CAPE score from NWS grid data. If unavailable or returns None, default to a sensible diurnal estimate or baseline.
             cape_val = extract_grid_value(grid_data, "convectiveAvailablePotentialEnergy", start_dt)
             if cape_val is None:
-              cape_val = 500.0
+              # Fallback estimate based on typical Florida diurnal heating curve (peaks mid-afternoon)
+              if 11 <= h <= 17:
+                cape_val = 2200.0
+              elif 8 <= h <= 10 or 18 <= h <= 20:
+                cape_val = 1500.0
+              else:
+                cape_val = 400.0
+
             instability_str = get_instability_rating(cape_val)
             display_time_label = f"{time_label} {instability_str}"
 
