@@ -366,6 +366,28 @@ def get_instability_rating(cape_val):
     return "!!!"
 
 
+def get_rain_likelihood_pct(pop, thunder_pct, cape_val):
+  """Calculates a practical rain likelihood percentage combining PoP, Thunder, and CAPE fuel."""
+  if pop is None:
+      pop = 0
+  if thunder_pct is None:
+      thunder_pct = 0
+  if cape_val is None:
+      cape_val = 0.0
+
+  likelihood = pop
+
+  if thunder_pct > 25:
+      likelihood = max(likelihood, thunder_pct)
+
+  if cape_val > 2000 and pop < 15:
+      likelihood = max(likelihood, 25)
+  elif cape_val > 1000 and pop < 15:
+      likelihood = max(likelihood, 15)
+
+  return int(likelihood)
+
+
 def extract_grid_value(grid_data, param_name, target_dt):
   try:
     prop = grid_data.get("properties", {})
@@ -622,10 +644,9 @@ else:
             has_thunder = "thunder" in text_blob or "storm" in text_blob
             thunder_pct = 80 if has_thunder and "slight chance" not in short_fc.lower() else (30 if has_thunder else 0)
 
-            # Retrieve CAPE score from NWS grid data. If unavailable or returns None, default to a sensible diurnal estimate or baseline.
+            # Retrieve CAPE score from NWS grid data. If unavailable, use diurnal baseline.
             cape_val = extract_grid_value(grid_data, "convectiveAvailablePotentialEnergy", start_dt)
             if cape_val is None:
-              # Fallback estimate based on typical Florida diurnal heating curve (peaks mid-afternoon)
               if 11 <= h <= 17:
                 cape_val = 2200.0
               elif 8 <= h <= 10 or 18 <= h <= 20:
@@ -636,8 +657,10 @@ else:
             instability_str = get_instability_rating(cape_val)
             display_time_label = f"{time_label} {instability_str}"
 
-            is_red = wind_val > 13.0 or pop > 25 or thunder_pct > 25
-            is_yellow = not is_red and (wind_val > 8.0 or pop > 15 or thunder_pct > 15)
+            effective_rain_pct = get_rain_likelihood_pct(pop, thunder_pct, cape_val)
+
+            is_red = wind_val > 13.0 or effective_rain_pct > 25 or thunder_pct > 25
+            is_yellow = not is_red and (wind_val > 8.0 or effective_rain_pct > 15 or thunder_pct > 15)
 
             if is_red:
               box_border = "#ff4b4b"
@@ -650,10 +673,10 @@ else:
             trigger_icons = ""
 
             wind_bg = get_rating_bg_color(wind_val, is_wind=True)
-            rain_bg = get_rating_bg_color(pop, is_wind=False)
+            rain_bg = get_rating_bg_color(effective_rain_pct, is_wind=False)
             thunder_bg = get_rating_bg_color(thunder_pct, is_wind=False)
 
-            rain_level = get_icon_level(pop)
+            rain_level = get_icon_level(effective_rain_pct)
             thunder_level = get_icon_level(thunder_pct)
 
             rain_icons = "💧" * rain_level if rain_level > 0 else ""
@@ -711,7 +734,7 @@ else:
                 <div class="box-text">{int(wind_val)}mph</div>
                 <div class="box-text">{pointer_svg}<span class="wind-dir-space"></span><span>{wind_dir}</span></div>
               </div>
-              <div class="box-text" style="margin-bottom: 3px; background-color: {rain_bg}; border-radius: 4px; padding: 2px;" title="Chance of Rain: {pop}%">{rain_icons} <span>{pop}%</span></div>
+              <div class="box-text" style="margin-bottom: 3px; background-color: {rain_bg}; border-radius: 4px; padding: 2px;" title="NWS PoP: {pop}%, CAPE: {cape_val:.0f}">{rain_icons} <span>{effective_rain_pct}%</span></div>
               <div class="box-text" style="margin-bottom: 4px; background-color: {thunder_bg}; border-radius: 4px; padding: 2px;" title="Chance of Thunder: {thunder_pct}%"><span style="text-shadow: -1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000, 1px 1px 0 #000; color: #ffeb3b;">{thunder_icons}</span> <span>{thunder_pct}%</span></div>
               <div class="box-text" style="margin-bottom: 3px; background-color: #f0f9ff; border-radius: 3px; padding: 2px;" title="Tide">{tide_display}</div>
               <div class="box-text" style="background-color: #f8fafc; border-radius: 3px; padding: 2px;" title="Temperature & Sky"><span style="font-size: 18px; vertical-align: middle;">{cloud_icon}</span> {temp_val}°{temp_unit}</div>
