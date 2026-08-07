@@ -313,6 +313,17 @@ def get_wind_svg(direction_str):
   return f'<span style="display: inline-block; transform: rotate({deg}deg); width: 14px; height: 14px; line-height: 14px; text-align: center; vertical-align: middle; margin-right: 4px;">⬆️</span>'
 
 
+def get_icon_level(pct):
+  if pct >= 50:
+      return 3
+  elif pct >= 25:
+      return 2
+  elif pct > 0:
+      return 1
+  else:
+      return 0
+
+
 def get_cloud_icon(short_fc):
   text = short_fc.lower()
   if "sunny" in text or "clear" in text:
@@ -363,7 +374,6 @@ def extract_grid_value(grid_data, param_name, target_dt):
       start_time = datetime.fromisoformat(parts[0].replace("Z", "+00:00"))
       duration_str = parts[1] if len(parts) > 1 else "PT1H"
       
-      # parse simple duration like PT1H or PT3H
       hours_add = 1
       if "PT" in duration_str and "H" in duration_str:
         try:
