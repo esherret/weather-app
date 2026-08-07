@@ -355,15 +355,16 @@ def get_rating_bg_color(val, is_wind=False):
       return "#e6f4ea"
 
 
-def get_instability_rating(cape_val):
-  if cape_val is None:
-    return "!"
-  elif cape_val <= 1000:
-    return "!"
-  elif cape_val <= 2000:
-    return "!!"
-  else:
-    return "!!!"
+# --- INSTABILITY RATING FUNCTION (COMMENTED OUT) ---
+# def get_instability_rating(cape_val):
+#   if cape_val is None:
+#     return "!"
+#   elif cape_val <= 1000:
+#     return "!"
+#   elif cape_val <= 2000:
+#     return "!!"
+#   else:
+#     return "!!!"
 
 
 def get_rain_likelihood_pct(pop, thunder_pct, cape_val):
@@ -447,10 +448,12 @@ with st.sidebar.expander("📖 App Help & Guide"):
     * **Yellow:** Moderate conditions (Wind 8.1–13 mph, Rain/Thunder 16%–25%).
     * **Red:** Hazardous conditions (Wind > 13 mph, Rain/Thunder > 25%).
     
-    ### Instability Rating (CAPE)
+    ### Instability Rating (CAPE) - Currently Disabled
+    <!--
     * **!:** 0 – 1,000 J/kg (Weakly Unstable)
     * **!!:** 1,001 – 2,000 J/kg (Moderately Unstable)
     * **!!!:** > 2,000 J/kg (Very Unstable)
+    -->
 
     ### Rain & Thunder Icons
     * **1–24%:** 💧 or ⚡
@@ -644,7 +647,7 @@ else:
             has_thunder = "thunder" in text_blob or "storm" in text_blob
             thunder_pct = 80 if has_thunder and "slight chance" not in short_fc.lower() else (30 if has_thunder else 0)
 
-            # Retrieve CAPE score from NWS grid data. If unavailable, use diurnal baseline.
+            # Retrieve CAPE score silently for rain likelihood calculation (instability display is disabled)
             cape_val = extract_grid_value(grid_data, "convectiveAvailablePotentialEnergy", start_dt)
             if cape_val is None:
               if 11 <= h <= 17:
@@ -654,8 +657,10 @@ else:
               else:
                 cape_val = 400.0
 
-            instability_str = get_instability_rating(cape_val)
-            display_time_label = f"{time_label} {instability_str}"
+            # --- Instability Exclamation Points (Commented Out) ---
+            # instability_str = get_instability_rating(cape_val)
+            # display_time_label = f"{time_label} {instability_str}"
+            display_time_label = time_label
 
             effective_rain_pct = get_rain_likelihood_pct(pop, thunder_pct, cape_val)
 
@@ -729,7 +734,7 @@ else:
 
             grid_html += f"""
             <div class="weather-card" style="flex: 1; min-width: 0; background-color: {box_bg}; border: 2px solid {box_border}; border-radius: 6px; padding: 4px; text-align: center; color: black;">
-              <div class="box-time" style="margin-bottom: 4px; background-color: {box_border}; color: black; border-radius: 3px; padding: 2px; border-bottom: 1px solid rgba(0,0,0,0.1);" title="CAPE: {cape_val:.1f} J/kg">{display_time_label}{trigger_icons}</div>
+              <div class="box-time" style="margin-bottom: 4px; background-color: {box_border}; color: black; border-radius: 3px; padding: 2px; border-bottom: 1px solid rgba(0,0,0,0.1);">{display_time_label}{trigger_icons}</div>
               <div style="margin-bottom: 4px; background-color: {wind_bg}; border-radius: 4px; padding: 2px;" title="Wind: {wind_val} mph {wind_dir}">
                 <div class="box-text">{int(wind_val)}mph</div>
                 <div class="box-text">{pointer_svg}<span class="wind-dir-space"></span><span>{wind_dir}</span></div>
@@ -779,12 +784,14 @@ else:
             <span>>13 mph</span>
           </div>
         </div>
+        <!-- Instability Scale Legend (Commented Out)
         <div style="display: flex; align-items: center; gap: 8px;">
           <span style="color: #4b5563;">Instability:</span>
           <span>!: 0–1000 J/kg</span>
           <span>!!: 1001–2000 J/kg</span>
           <span>!!!: >2000 J/kg</span>
         </div>
+        -->
         <div style="display: flex; align-items: center; gap: 8px;">
           <span style="color: #4b5563;">Rain (%):</span>
           <span>💧: 1–24%</span>
